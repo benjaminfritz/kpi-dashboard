@@ -126,6 +126,7 @@ const App: React.FC = () => {
         </header>
 
         <div className="mb-8 flex flex-wrap items-center gap-2">
+          <span className="text-sm font-medium text-slate-600 dark:text-slate-300">Filter View by</span>
           <button
             type="button"
             onClick={() => togglePillar('design')}
