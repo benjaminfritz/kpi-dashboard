@@ -58,11 +58,10 @@ const App: React.FC = () => {
     <button
       type="button"
       onClick={() => setDarkMode((current) => !current)}
-      className="fixed right-4 top-4 z-50 inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/90 px-3 py-2 text-xs font-semibold text-slate-700 shadow-sm backdrop-blur transition hover:bg-white dark:border-slate-700 dark:bg-slate-900/90 dark:text-slate-200 dark:hover:bg-slate-900"
+      className="fixed right-4 top-4 z-50 inline-flex items-center rounded-full border border-slate-200 bg-white/90 p-2 text-slate-700 shadow-sm backdrop-blur transition hover:bg-white dark:border-slate-700 dark:bg-slate-900/90 dark:text-slate-200 dark:hover:bg-slate-900"
       aria-label="Toggle dark mode"
     >
       {darkMode ? <Sun size={16} /> : <Moon size={16} />}
-      <span>{darkMode ? 'Light' : 'Dark'}</span>
     </button>
   );
 
