@@ -1,0 +1,226 @@
+{
+  "meta": {
+    "source": {
+      "fileKey": "ZLauURKqRW3FouiBZ6XDmC",
+      "colorNodeId": "18:2632",
+      "typographyNodeId": "25:1459",
+      "spacingNodeId": "18:798",
+      "objectStyleNodeId": "739:10478"
+    },
+    "generatedAt": "2026-02-18"
+  },
+  "color": {
+    "primary": {
+      "--colorVodafoneRed": "#e60000",
+      "--colorRed": "#bd0000",
+      "--colorVodafoneDarkRed": "#820000",
+      "--colorVodafoneRedTint": "#ea1a1a",
+      "--colorRedTint": "#f06666",
+      "--colorVodafoneDarkRedTint": "#8a0f0f"
+    },
+    "secondary": {
+      "--colorTurquoise": "#00697c",
+      "--colorAubergine": "#5e2750",
+      "--colorFreshOrange": "#eb6100",
+      "--colorLemonYellow": "#fecb00",
+      "--colorSpringGreen": "#008a00",
+      "--colorBlue": "#005ea5",
+      "--colorAquaBlue": "#0096ad",
+      "--colorTurqouiseTint": "#0096ad",
+      "--colorAubergineTint": "#b04a98",
+      "--colorFreshOrangeTint": "#eb9700",
+      "--colorLemonYellowTint": "#fecb00",
+      "--colorSpringGreenTint": "#b7bf10",
+      "--colorBlueTint": "#5f9bc8",
+      "--colorAquaBlueTint": "#00b0ca"
+    },
+    "monochrome": {
+      "--color-vodafoneWhite": "#ffffff",
+      "--color-black05": "#f2f2f2",
+      "--color-black25": "#bebebe",
+      "--color-black50": "#7e7e7e",
+      "--colorBlack60": "#666666",
+      "--color-black85": "#262626",
+      "--color-black95": "#0d0d0d"
+    },
+    "semantic": {
+      "--colorTextNeutral": "#0d0d0d",
+      "--colorBorderNeutral": "#0d0d0d",
+      "--colorBorderSubtle": "#bebebe",
+      "--colorBorderFocus": "#0096ad",
+      "--colorBackgroundNeutral": "#ffffff",
+      "--colorBackgroundSubtle": "#f2f2f2",
+      "--colorObjectBrand": "#e60000",
+      "--colorObjectSelected": "#00697c",
+      "--colorObjectSuccess": "#008a00",
+      "--colorIconSuccess": "#008a00",
+      "--colorIconCritical": "#bd0000",
+      "--colorBorderSuccess": "#008a00",
+      "--colorBorderCritical": "#bd0000"
+    }
+  },
+  "typography": {
+    "fontFamily": {
+      "vodafone": "Vodafone VF"
+    },
+    "fontWeight": {
+      "--fontWeightRegular": 400,
+      "--fontWeightLight": 700
+    },
+    "fontSize": {
+      "--fontSize14": {
+        "px": 14,
+        "rem": 0.875
+      },
+      "--fontSize16": {
+        "px": 16,
+        "rem": 1
+      },
+      "--fontSize18": {
+        "px": 18,
+        "rem": 1.125
+      },
+      "--fontSize20": {
+        "px": 20,
+        "rem": 1.25
+      },
+      "--fontSize24": {
+        "px": 24,
+        "rem": 1.5
+      },
+      "--fontSize28": {
+        "px": 28,
+        "rem": 1.75
+      },
+      "--fontSize32": {
+        "px": 32,
+        "rem": 2
+      },
+      "--fontSize40": {
+        "px": 40,
+        "rem": 2.5
+      },
+      "--fontSize56": {
+        "px": 56,
+        "rem": 3.5
+      },
+      "--fontSize64": {
+        "px": 64,
+        "rem": 4
+      }
+    },
+    "textDecoration": {
+      "--textDecorationNone": "none",
+      "--textDecorationUnderline": "underline",
+      "--textDecorationStrikethrough": "line-through"
+    },
+    "tokens": {
+      "--headingSmFontSize": 28,
+      "--headingSmLineHeight": 36,
+      "--headingMdFontSize": 40,
+      "--headingMdLineHeight": 48,
+      "--bodyMdFontSize": 18,
+      "--bodyMdLineHeight": 26
+    },
+    "styles": {
+      "heading/sm/bold": "Font(family: \"fontFamily/Vodafone\", style: Bold, size: --headingSmFontSize, weight: --fontWeightLight, lineHeight: --headingSmLineHeight, letterSpacing: 0)",
+      "heading/md/bold": "Font(family: \"fontFamily/Vodafone\", style: Bold, size: --headingMdFontSize, weight: --fontWeightLight, lineHeight: --headingMdLineHeight, letterSpacing: 0)",
+      "body/md/regular": "Font(family: \"fontFamily/Vodafone\", style: Regular, size: --bodyMdFontSize, weight: --fontWeightRegular, lineHeight: --bodyMdLineHeight, letterSpacing: 0)"
+    }
+  },
+  "spacing": {
+    "scale": {
+      "--spacing0": {
+        "px": 0,
+        "rem": 0
+      },
+      "--spacing4": {
+        "px": 4,
+        "rem": 0.25
+      },
+      "--spacing8": {
+        "px": 8,
+        "rem": 0.5
+      },
+      "--spacing12": {
+        "px": 12,
+        "rem": 0.75
+      },
+      "--spacing16": {
+        "px": 16,
+        "rem": 1
+      },
+      "--spacing20": {
+        "px": 20,
+        "rem": 1.25
+      },
+      "--spacing24": {
+        "px": 24,
+        "rem": 1.5
+      },
+      "--spacing28": {
+        "px": 28,
+        "rem": 1.75
+      },
+      "--spacing32": {
+        "px": 32,
+        "rem": 2
+      },
+      "--spacing40": {
+        "px": 40,
+        "rem": 2.5
+      },
+      "--spacing48": {
+        "px": 48,
+        "rem": 3
+      },
+      "--spacing-56": {
+        "px": 56,
+        "rem": 3.5
+      },
+      "--spacing64": {
+        "px": 64,
+        "rem": 4
+      },
+      "--spacing72": {
+        "px": 72,
+        "rem": 4.5
+      },
+      "--spacing80": {
+        "px": 80,
+        "rem": 5
+      }
+    }
+  },
+  "objectStyle": {
+    "base": {
+      "--shadow28": "0px 2px 8px 0px rgba(0, 0, 0, 0.16)",
+      "--opacity60": 0.6,
+      "--opacity38": 0.38,
+      "--borderWidth0": 0,
+      "--borderWidth1": 1,
+      "--borderWidth2": 2,
+      "--borderWidth4": 4,
+      "--borderRadius3": 3,
+      "--borderRadius6": 6,
+      "--borderRadius100": 100
+    },
+    "alias": {
+      "--shadow": "{--shadow28}",
+      "--opacityDisabled": "{--opacity38}",
+      "--borderWidthNone": "{--borderWidth0}",
+      "--borderWidthSm": "{--borderWidth1}",
+      "--borderWidthMd": "{--borderWidth2}",
+      "--borderWidthDivider": "{--borderWidth1}",
+      "--borderWidthUnselected": "{--borderWidth1}",
+      "--borderWidthSelected": "{--borderWidth2}",
+      "--borderWidthButton": "{--borderWidth2}",
+      "--borderWidthNavigation": "{--borderWidth4}",
+      "--borderWidthFocus": "{--borderWidth4}",
+      "--borderRadiusSm": "{--borderRadius3}",
+      "--borderRadiusMd": "{--borderRadius6}",
+      "--borderRadiusFull": "{--borderRadius100}",
+      "--focusOutline": "0 0 0 var(--borderWidthFocus, 4px) var(--colorBorderFocus, #0096ad)"
+    }
+  }
+}

@@ -9,13 +9,13 @@ export const ProgressBar: React.FC<{ label: string; value: number; max: number; 
   
   return (
     <div className="w-full">
-      <div className="flex justify-between text-xs font-medium mb-1.5">
-        <span className="text-gray-500 dark:text-slate-400">{label}</span>
-        <span className="text-gray-900 dark:text-slate-100">{value}</span>
+      <div className="mb-spacing-4 flex justify-between text-xs font-medium">
+        <span className="text-neutral-60 dark:text-neutral-25">{label}</span>
+        <span className="font-light text-semantic-textNeutral dark:text-neutral-5">{value}</span>
       </div>
-      <div className="w-full bg-gray-100 dark:bg-slate-800 rounded-full h-2 overflow-hidden">
+      <div className="h-spacing-8 w-full overflow-hidden rounded-tokenFull bg-neutral-25 dark:bg-neutral-85">
         <div 
-          className={`h-full rounded-full transition-all duration-1000 ease-out ${color}`} 
+          className={`h-full rounded-tokenFull transition-all duration-1000 ease-out ${color}`} 
           style={{ width: `${percentage}%` }}
         ></div>
       </div>

@@ -8,15 +8,16 @@ interface KpiCardProps {
 }
 
 export const KpiCard: React.FC<KpiCardProps> = ({ title, icon, children, hideOutline = false }) => {
-  const outlineClasses = hideOutline ? '' : 'border border-gray-100 dark:border-slate-800';
+  const outlineClasses = hideOutline ? '' : 'border border-semantic-borderSubtle/70 dark:border-neutral-50/70';
 
   return (
-    <div className={`bg-white dark:bg-slate-900 rounded-xl shadow-sm p-6 hover:shadow-md transition-shadow duration-300 ${outlineClasses}`}>
-      <div className="flex items-center justify-between mb-6">
-        <h3 className="text-lg font-bold text-gray-800 dark:text-slate-100">{title}</h3>
-        <div className="p-2 bg-gray-50 dark:bg-slate-800 rounded-lg text-gray-600 dark:text-slate-300">{icon}</div>
+    <div className={`relative overflow-hidden rounded-md bg-semantic-backgroundNeutral p-spacing-24 shadow-tokenShadow28 transition-transform duration-300 hover:-translate-y-0.5 dark:bg-neutral-85 ${outlineClasses}`}>
+      <div className="absolute inset-x-0 top-0 h-1 bg-brand-vodafone" />
+      <div className="mb-spacing-20 flex items-center justify-between">
+        <h3 className="font-vodafone text-[1.125rem] font-light text-semantic-textNeutral dark:text-neutral-5">{title}</h3>
+        <div className="rounded-sm bg-neutral-5 p-spacing-8 text-brand-red dark:bg-neutral-95 dark:text-brand-redTint">{icon}</div>
       </div>
-      <div className="space-y-4">
+      <div className="space-y-spacing-16">
         {children}
       </div>
     </div>
