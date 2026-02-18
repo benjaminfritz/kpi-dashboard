@@ -175,7 +175,7 @@ const App: React.FC = () => {
           
           {/* 1. FIGMA */}
           {activePillars.includes('design') && (
-          <KpiCard title="Design" icon={<FileImage size={24} />} sourceColor="border-purple-500">
+          <KpiCard title="Design" icon={<FileImage size={24} />} hideOutline>
              <div className="flex items-baseline justify-between mb-2">
                <span className="text-slate-600 dark:text-slate-300 text-sm">Figma Files with Components in use</span>
                <span className="text-4xl font-extrabold text-purple-600">{data.figma.filesCount}</span>
@@ -214,7 +214,7 @@ const App: React.FC = () => {
 
           {/* 2. GITHUB / REACT COMPONENTS */}
           {activePillars.includes('code') && (
-          <KpiCard title="Code" icon={<GitPullRequest size={24} />} sourceColor="border-slate-800">
+          <KpiCard title="Code" icon={<GitPullRequest size={24} />} hideOutline>
             <div className="flex items-center justify-between mb-6 bg-slate-50 dark:bg-slate-800 p-3 rounded border border-slate-100 dark:border-slate-700">
                <span className="text-slate-600 dark:text-slate-300 text-sm font-medium">Open Pull Requests</span>
                <span className="px-2.5 py-0.5 bg-green-100 text-green-700 rounded text-xs font-bold border border-green-200">
@@ -261,7 +261,7 @@ const App: React.FC = () => {
 
           {/* 3. CONTENTFUL */}
           {activePillars.includes('content') && (
-          <KpiCard title="Content" icon={<Database size={24} />} sourceColor="border-blue-500">
+          <KpiCard title="Content" icon={<Database size={24} />}>
             <div className="grid grid-cols-2 gap-4">
               <div className="text-center p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-100 dark:border-blue-900">
                 <div className="text-2xl font-bold text-blue-600">{data.contentful.publishedEntries}</div>
