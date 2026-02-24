@@ -283,7 +283,7 @@ const App: React.FC = () => {
         </div>
 
         {/* GRID LAYOUT */}
-        <div className="grid grid-cols-1 gap-spacing-32 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 items-start gap-spacing-32 md:grid-cols-2 lg:grid-cols-3">
           
           {/* 1. FIGMA */}
           {isPillarActive('design') && (
