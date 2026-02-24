@@ -46,6 +46,7 @@ const isLiveFigmaPayload = (payload: unknown): payload is FigmaData => {
     typeof candidate.componentInsertionsLast30Days === 'number' &&
     typeof candidate.componentDetachmentsLast30Days === 'number' &&
     typeof candidate.teamsUsingLibrary === 'number' &&
+    Array.isArray(candidate.topLibraryConsumingTeams) &&
     Array.isArray(candidate.topComponentUsage)
   );
 };

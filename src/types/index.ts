@@ -6,6 +6,10 @@ export interface FigmaData {
   componentInsertionsLast30Days: number;
   componentDetachmentsLast30Days: number;
   teamsUsingLibrary: number;
+  topLibraryConsumingTeams: {
+    teamName: string;
+    usages: number;
+  }[];
   topComponentUsage: {
     componentName: string;
     usages: number;
