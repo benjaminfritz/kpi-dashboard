@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { fetchDashboardData } from './services/api';
-import { DashboardData } from './types';
+import { fetchDashboardData, fetchFigmaConfigStatus } from './services/api';
+import { DashboardData, FigmaConfigStatus } from './types';
 import { KpiCard } from './components/KpiCard';
 import { ProgressBar } from './components/ProgressBar';
 import { Layout, FileImage, GitPullRequest, Database, Moon, Sun } from 'lucide-react';
@@ -9,6 +9,7 @@ type Pillar = 'design' | 'code' | 'content';
 
 const App: React.FC = () => {
   const [data, setData] = useState<DashboardData | null>(null);
+  const [figmaStatus, setFigmaStatus] = useState<FigmaConfigStatus | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [activePillars, setActivePillars] = useState<Pillar[]>(['design', 'code', 'content']);
@@ -30,9 +31,16 @@ const App: React.FC = () => {
 
     const loadData = async () => {
       try {
-        const result = await fetchDashboardData();
+        const [result, configStatus] = await Promise.all([
+          fetchDashboardData(),
+          fetchFigmaConfigStatus().catch((configError) => {
+            console.warn("Unable to load Figma config status", configError);
+            return null;
+          }),
+        ]);
         if (isMounted) {
           setData(result);
+          setFigmaStatus(configStatus);
           setError(null);
         }
       } catch (error) {
@@ -92,9 +100,22 @@ const App: React.FC = () => {
   );
 
   const maxComponentUsage = Math.max(...data.github.componentUsageCount.map((comp) => comp.count), 1);
+  const maxFigmaComponentUsage = Math.max(...(data.figma?.topComponentUsage.map((item) => item.usages) ?? [1]), 1);
   const maxContentTypeEntries = Math.max(...data.contentful.contentTypeDistribution.map((item) => item.entries), 1);
   const pillarOrder: Pillar[] = ['design', 'code', 'content'];
   const isFiltered = activePillars.length !== pillarOrder.length;
+
+  const figmaStatusLabel = figmaStatus?.ready
+    ? 'Figma: Ready'
+    : figmaStatus?.configured === false
+      ? 'Figma: Not Configured'
+      : figmaStatus?.configured === true
+        ? 'Figma: Access Error'
+        : 'Figma: Status Unknown';
+
+  const figmaStatusClassName = figmaStatus?.ready
+    ? 'border-secondary-springGreen/40 bg-secondary-springGreen/10 text-secondary-springGreen dark:border-secondary-springGreen/50 dark:bg-secondary-springGreen/20'
+    : 'border-brand-redTint/40 bg-brand-redTint/10 text-brand-red dark:border-brand-redTint/60 dark:bg-brand-redTint/20 dark:text-neutral-5';
 
   const togglePillar = (pillar: Pillar) => {
     setActivePillars((current) => {
@@ -119,8 +140,13 @@ const App: React.FC = () => {
             <h1 className="font-vodafone text-heading-md font-light tracking-tight">Design System Metrics</h1>
             <p className="mt-spacing-8 text-body-md text-neutral-60 dark:text-neutral-25">Real-time Metrics from Figma, Github and Contentful.</p>
           </div>
-          <div className="rounded-sm border border-semantic-borderSubtle bg-semantic-backgroundNeutral px-spacing-12 py-spacing-8 text-xs font-mono text-neutral-60 dark:border-neutral-50/70 dark:bg-neutral-85 dark:text-neutral-25">
-            Last update: {data.lastUpdated}
+          <div className="flex flex-col items-start gap-spacing-8 md:items-end">
+            <div className={`rounded-tokenFull border px-spacing-12 py-spacing-4 text-[11px] font-semibold uppercase tracking-wide ${figmaStatusClassName}`}>
+              {figmaStatusLabel}
+            </div>
+            <div className="rounded-sm border border-semantic-borderSubtle bg-semantic-backgroundNeutral px-spacing-12 py-spacing-8 text-xs font-mono text-neutral-60 dark:border-neutral-50/70 dark:bg-neutral-85 dark:text-neutral-25">
+              Last update: {data.lastUpdated}
+            </div>
           </div>
         </header>
 
@@ -176,39 +202,64 @@ const App: React.FC = () => {
           {/* 1. FIGMA */}
           {activePillars.includes('design') && (
           <KpiCard title="Design" icon={<FileImage size={24} />} hideOutline>
-             <div className="mb-spacing-8 flex items-baseline justify-between">
-               <span className="text-sm text-neutral-60 dark:text-neutral-25">Figma Files with Components in use</span>
-               <span className="text-4xl font-light text-brand-vodafone">{data.figma.filesCount}</span>
-             </div>
-             <div className="my-spacing-16 h-px bg-semantic-borderSubtle/50 dark:bg-neutral-50/50"></div>
-             <ProgressBar 
-               label="Design System Coverage in %" 
-               value={data.figma.designSystemUsage} 
-               max={100} 
-               color="bg-brand-vodafone dark:bg-brand-redTint" 
-             />
-             <div className="mt-spacing-24 flex items-center gap-spacing-8 rounded-sm border border-brand-redTint/40 bg-brand-redTint/10 p-spacing-12 text-xs text-brand-red dark:bg-brand-redTint/20 dark:text-neutral-5">
-               <div className="h-spacing-8 w-spacing-8 animate-pulse rounded-tokenFull bg-brand-vodafone"></div>
-               {data.figma.recentComments} Comments in Review
-             </div>
-             <div className="grid grid-cols-2 gap-spacing-12">
-               <div className="rounded-sm border border-brand-redTint/30 bg-brand-redTint/10 p-spacing-12 dark:bg-brand-redTint/20">
-                 <div className="text-xs uppercase tracking-wide text-brand-red dark:text-neutral-5">Published (30d)</div>
-                 <div className="mt-spacing-4 text-xl font-light text-brand-vodafone dark:text-brand-redTint">{data.figma.componentsPublishedLast30Days}</div>
+             {data.figma ? (
+               <>
+                 <div className="mb-spacing-8 flex items-baseline justify-between">
+                   <span className="text-sm text-neutral-60 dark:text-neutral-25">Figma Files with Components in use</span>
+                   <span className="text-4xl font-light text-brand-vodafone">{data.figma.filesCount}</span>
+                 </div>
+                 <div className="text-xs uppercase tracking-wide text-neutral-60 dark:text-neutral-25">{data.figma.teamName}</div>
+                 <div className="my-spacing-16 h-px bg-semantic-borderSubtle/50 dark:bg-neutral-50/50"></div>
+                 <ProgressBar 
+                   label="Adoption Health (Insertions vs Detachments)" 
+                   value={data.figma.designSystemUsage} 
+                   max={100} 
+                   color="bg-brand-vodafone dark:bg-brand-redTint" 
+                 />
+                 <div className="mt-spacing-24 flex items-center gap-spacing-8 rounded-sm border border-brand-redTint/40 bg-brand-redTint/10 p-spacing-12 text-xs text-brand-red dark:bg-brand-redTint/20 dark:text-neutral-5">
+                   <div className="h-spacing-8 w-spacing-8 animate-pulse rounded-tokenFull bg-brand-vodafone"></div>
+                   {data.figma.totalComponentUsages.toLocaleString()} Total Component Usages
+                 </div>
+                 <div className="grid grid-cols-2 gap-spacing-12">
+                   <div className="rounded-sm border border-brand-redTint/30 bg-brand-redTint/10 p-spacing-12 dark:bg-brand-redTint/20">
+                     <div className="text-xs uppercase tracking-wide text-brand-red dark:text-neutral-5">Insertions (30d)</div>
+                     <div className="mt-spacing-4 text-xl font-light text-brand-vodafone dark:text-brand-redTint">{data.figma.componentInsertionsLast30Days.toLocaleString()}</div>
+                   </div>
+                   <div className="rounded-sm border border-secondary-aquaBlue/30 bg-secondary-aquaBlue/10 p-spacing-12 dark:bg-secondary-aquaBlue/20">
+                     <div className="text-xs uppercase tracking-wide text-secondary-aquaBlue dark:text-neutral-5">Detachments (30d)</div>
+                     <div className="mt-spacing-4 text-xl font-light text-secondary-turquoise dark:text-secondary-aquaBlue">{data.figma.componentDetachmentsLast30Days.toLocaleString()}</div>
+                   </div>
+                 </div>
+                 <div className="rounded-sm border border-semantic-borderSubtle bg-neutral-5 p-spacing-12 text-xs text-neutral-60 dark:border-neutral-50/70 dark:bg-neutral-95 dark:text-neutral-25">
+                   Teams using this library: <span className="font-semibold text-semantic-textNeutral dark:text-neutral-5">{data.figma.teamsUsingLibrary}</span>
+                 </div>
+                 <h4 className="text-xs font-bold uppercase tracking-wider text-neutral-60 dark:text-neutral-25">Top Components by Usage</h4>
+                 {data.figma.topComponentUsage.length > 0 ? (
+                   <ul className="space-y-spacing-12">
+                     {data.figma.topComponentUsage.map((item) => (
+                       <li key={item.componentName}>
+                         <ProgressBar
+                           label={item.componentName}
+                           value={item.usages}
+                           max={maxFigmaComponentUsage}
+                           color="bg-secondary-aquaBlue dark:bg-secondary-aquaBlueTint"
+                         />
+                       </li>
+                     ))}
+                   </ul>
+                 ) : (
+                   <div className="text-xs text-neutral-60 dark:text-neutral-25">No usage data available for the selected period.</div>
+                 )}
+               </>
+             ) : (
+               <div className="rounded-sm border border-semantic-borderSubtle bg-neutral-5 p-spacing-16 text-sm text-neutral-60 dark:border-neutral-50/70 dark:bg-neutral-95 dark:text-neutral-25">
+                 <p className="mb-spacing-8 font-medium text-semantic-textNeutral dark:text-neutral-5">No live Figma analytics available.</p>
+                 <p>Set `FIGMA_ACCESS_TOKEN` and `FIGMA_LIBRARY_FILE_KEY`, then verify `/api/figma-config-check`.</p>
+                 {figmaStatus?.validation?.detail && (
+                   <p className="mt-spacing-8 text-xs">Error: {figmaStatus.validation.detail}</p>
+                 )}
                </div>
-               <div className="rounded-sm border border-secondary-aquaBlue/30 bg-secondary-aquaBlue/10 p-spacing-12 dark:bg-secondary-aquaBlue/20">
-                 <div className="text-xs uppercase tracking-wide text-secondary-aquaBlue dark:text-neutral-5">Review Latency</div>
-                 <div className="mt-spacing-4 text-xl font-light text-secondary-turquoise dark:text-secondary-aquaBlue">{data.figma.reviewLatencyHours}h</div>
-               </div>
-             </div>
-             <h4 className="text-xs font-bold uppercase tracking-wider text-neutral-60 dark:text-neutral-25">Library Adoption</h4>
-             <ul className="space-y-spacing-12">
-               {data.figma.libraryAdoption.map((item) => (
-                 <li key={item.library}>
-                   <ProgressBar label={item.library} value={item.adoption} max={100} color="bg-secondary-aquaBlue dark:bg-secondary-aquaBlueTint" />
-                 </li>
-               ))}
-             </ul>
+             )}
           </KpiCard>
           )}
 

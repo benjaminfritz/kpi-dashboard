@@ -1,14 +1,33 @@
 export interface FigmaData {
   teamName: string;
   filesCount: number;
-  recentComments: number;
   designSystemUsage: number;
-  componentsPublishedLast30Days: number;
-  reviewLatencyHours: number;
-  libraryAdoption: {
-    library: string;
-    adoption: number;
+  totalComponentUsages: number;
+  componentInsertionsLast30Days: number;
+  componentDetachmentsLast30Days: number;
+  teamsUsingLibrary: number;
+  topComponentUsage: {
+    componentName: string;
+    usages: number;
   }[];
+}
+
+export interface FigmaConfigStatus {
+  ready: boolean;
+  configured: boolean;
+  env?: {
+    FIGMA_ACCESS_TOKEN: boolean;
+    FIGMA_LIBRARY_FILE_KEY: boolean;
+  };
+  tokenPreview?: string | null;
+  libraryFileKeyPreview?: string | null;
+  validation?: {
+    ok: boolean;
+    status: number;
+    rowCount?: number;
+    detail?: string;
+  };
+  checkedAt?: string;
 }
 
 export interface ContentfulData {
@@ -40,7 +59,7 @@ export interface GithubData {
 }
 
 export interface DashboardData {
-  figma: FigmaData;
+  figma: FigmaData | null;
   contentful: ContentfulData;
   github: GithubData;
   lastUpdated: string;
