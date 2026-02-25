@@ -21,6 +21,8 @@ const fallbackDashboardData: Omit<DashboardData, 'lastUpdated' | 'figma'> = {
     scheduledEntriesNext7Days: 12,
     weeklyPublishRate: 137,
     weeklyPublishRateDelta: 18,
+    contentTypeDistributionStatus: 'ok',
+    contentTypeDistributionError: null,
     contentTypeDistribution: [
       { contentType: "LandingPage", entries: 310 },
       { contentType: "Article", entries: 442 },

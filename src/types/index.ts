@@ -46,6 +46,8 @@ export interface ContentfulData {
   scheduledEntriesNext7Days: number;
   weeklyPublishRate: number;
   weeklyPublishRateDelta: number;
+  contentTypeDistributionStatus?: 'ok' | 'unavailable';
+  contentTypeDistributionError?: string | null;
   contentTypeDistribution: {
     contentType: string;
     entries: number;

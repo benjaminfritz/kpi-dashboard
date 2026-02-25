@@ -206,6 +206,7 @@ const App: React.FC = () => {
   const recentAssetUploadsDeltaClassName = data.contentful.recentAssetUploadsDelta >= 0
     ? 'text-secondary-springGreen dark:text-secondary-springGreenTint'
     : 'text-brand-red dark:text-brand-redTint';
+  const contentTypeDistributionUnavailable = data.contentful.contentTypeDistributionStatus === 'unavailable';
   const repoViewsDeltaClassName = data.github.repoViews14dDelta >= 0
     ? 'text-secondary-springGreen dark:text-secondary-springGreenTint'
     : 'text-brand-red dark:text-brand-redTint';
@@ -717,7 +718,11 @@ const App: React.FC = () => {
                 ))}
               </ul>
             ) : (
-              <div className="text-xs text-neutral-60 dark:text-neutral-25">No content type distribution data available.</div>
+              <div className="text-xs text-neutral-60 dark:text-neutral-25">
+                {contentTypeDistributionUnavailable
+                  ? `Content type distribution unavailable. ${data.contentful.contentTypeDistributionError || ''}`.trim()
+                  : 'No content type distribution data available.'}
+              </div>
             )}
           </KpiCard>
           )}

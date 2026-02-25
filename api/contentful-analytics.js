@@ -279,6 +279,8 @@ export default async function handler(request, response) {
   scheduleWindowEnd.setUTCDate(scheduleWindowEnd.getUTCDate() + scheduleWindowDays);
 
   try {
+    let contentTypeDistributionError = null;
+
     const [
       totalEntries,
       publishedEntries,
@@ -364,7 +366,11 @@ export default async function handler(request, response) {
         windowStart: now,
         windowEnd: scheduleWindowEnd,
       }).catch(() => ({ total: 0, nextWindow: 0 })),
-      fetchContentTypeDistribution({ token, spaceId, environmentId }).catch(() => []),
+      fetchContentTypeDistribution({ token, spaceId, environmentId }).catch((error) => {
+        contentTypeDistributionError =
+          error instanceof Error ? error.message : "Unknown content type distribution error";
+        return [];
+      }),
     ]);
 
     const weeklyPublishRateDelta = weeklyPublishRate - previousWeeklyPublishRate;
@@ -382,6 +388,8 @@ export default async function handler(request, response) {
       scheduledEntriesNext7Days: scheduledMetrics.nextWindow,
       weeklyPublishRate,
       weeklyPublishRateDelta,
+      contentTypeDistributionStatus: contentTypeDistributionError ? "unavailable" : "ok",
+      contentTypeDistributionError,
       contentTypeDistribution,
     });
   } catch (error) {
