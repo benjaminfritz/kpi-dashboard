@@ -38,28 +38,90 @@ export interface ContentfulData {
   totalEntries: number;
   publishedEntries: number;
   draftEntries: number;
+  staleDraftEntries: number;
   recentAssetUploads: number;
+  recentAssetUploadsDelta: number;
   locales: number;
   scheduledEntries: number;
+  scheduledEntriesNext7Days: number;
   weeklyPublishRate: number;
+  weeklyPublishRateDelta: number;
   contentTypeDistribution: {
     contentType: string;
     entries: number;
   }[];
 }
 
+export interface ContentfulConfigStatus {
+  ready: boolean;
+  configured: boolean;
+  env?: {
+    CONTENTFUL_MANAGEMENT_TOKEN: boolean;
+    CONTENTFUL_SPACE_ID: boolean;
+    CONTENTFUL_ENVIRONMENT_ID: boolean;
+  };
+  tokenPreview?: string | null;
+  spaceIdPreview?: string | null;
+  environmentId?: string;
+  validation?: {
+    ok: boolean;
+    status: number;
+    detail?: string;
+  };
+  checkedAt?: string;
+}
+
 export interface GithubData {
+  source: 'mock' | 'live';
+  organization: string;
   repoName: string;
+  consumingRepos30d: number;
+  newConsumingRepos30d: number;
+  repoViews14d: number;
+  repoViews14dDelta: number;
+  uniqueVisitors14d: number;
+  repoClones14d: number;
+  uniqueCloners14d: number;
+  openBugs: number;
+  openCriticalBugs: number;
+  medianBugAgeDays: number;
+  bugsOpened7d: number;
+  bugsClosed7d: number;
   openPRs: number;
+  openPROlderThan7d: number;
   mergedPRs7d: number;
-  avgReviewTimeHours: number;
-  buildSuccessRate: number;
-  openIssues: number;
-  commitVolume7d: number;
-  componentUsageCount: {
+  medianTimeToFirstReviewHours: number;
+  medianTimeToMergeHours: number;
+  topConsumingRepos: {
+    repo: string;
+    imports: number;
+  }[];
+  topImportedComponents: {
     componentName: string;
     count: number;
   }[];
+}
+
+export interface GithubConfigStatus {
+  ready: boolean;
+  configured: boolean;
+  mode: 'mock' | 'live';
+  env?: {
+    GITHUB_TOKEN: boolean;
+    GITHUB_OWNER: boolean;
+    GITHUB_REPO: boolean;
+    GITHUB_ORG: boolean;
+  };
+  tokenPreview?: string | null;
+  owner?: string;
+  repo?: string;
+  org?: string;
+  validation?: {
+    ok: boolean;
+    status: number;
+    detail?: string;
+  };
+  checkedAt?: string;
 }
 
 export interface DashboardData {

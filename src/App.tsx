@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { fetchDashboardData, fetchFigmaConfigStatus } from './services/api';
-import { DashboardData, FigmaConfigStatus } from './types';
+import { fetchContentfulConfigStatus, fetchDashboardData, fetchFigmaConfigStatus, fetchGithubConfigStatus } from './services/api';
+import { ContentfulConfigStatus, DashboardData, FigmaConfigStatus, GithubConfigStatus } from './types';
 import { KpiCard } from './components/KpiCard';
 import { ProgressBar } from './components/ProgressBar';
-import { Layout, Moon, Sun } from 'lucide-react';
+import { Github, Layout, Moon, Sun } from 'lucide-react';
 
 type Pillar = 'design' | 'code' | 'content';
 const MONO_ICON_STROKE_WIDTH = 1;
@@ -29,7 +29,7 @@ const FigmaMonochromeIcon: React.FC = () => (
   </svg>
 );
 
-const ReactMonochromeIcon: React.FC = () => (
+export const StoredReactMonochromeIcon: React.FC = () => (
   <svg
     width="24"
     height="24"
@@ -47,6 +47,10 @@ const ReactMonochromeIcon: React.FC = () => (
     <ellipse cx="12" cy="12" rx="10" ry="4.25" transform="rotate(120 12 12)" />
     <circle cx="12" cy="12" r="1.8" fill="currentColor" stroke="none" />
   </svg>
+);
+
+const GitHubMonochromeIcon: React.FC = () => (
+  <Github size={24} strokeWidth={MONO_ICON_STROKE_WIDTH} aria-hidden="true" />
 );
 
 const ContentfulMonochromeIcon: React.FC = () => {
@@ -67,6 +71,8 @@ const ContentfulMonochromeIcon: React.FC = () => {
 const App: React.FC = () => {
   const [data, setData] = useState<DashboardData | null>(null);
   const [figmaStatus, setFigmaStatus] = useState<FigmaConfigStatus | null>(null);
+  const [githubStatus, setGithubStatus] = useState<GithubConfigStatus | null>(null);
+  const [contentfulStatus, setContentfulStatus] = useState<ContentfulConfigStatus | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [activePillars, setActivePillars] = useState<Pillar[]>(['design', 'code', 'content']);
@@ -88,16 +94,26 @@ const App: React.FC = () => {
 
     const loadData = async () => {
       try {
-        const [result, configStatus] = await Promise.all([
+        const [result, figmaConfigStatus, githubConfigStatus, contentfulConfigStatus] = await Promise.all([
           fetchDashboardData(),
           fetchFigmaConfigStatus().catch((configError) => {
             console.warn("Unable to load Figma config status", configError);
             return null;
           }),
+          fetchGithubConfigStatus().catch((configError) => {
+            console.warn("Unable to load GitHub config status", configError);
+            return null;
+          }),
+          fetchContentfulConfigStatus().catch((configError) => {
+            console.warn("Unable to load Contentful config status", configError);
+            return null;
+          }),
         ]);
         if (isMounted) {
           setData(result);
-          setFigmaStatus(configStatus);
+          setFigmaStatus(figmaConfigStatus);
+          setGithubStatus(githubConfigStatus);
+          setContentfulStatus(contentfulConfigStatus);
           setError(null);
         }
       } catch (error) {
@@ -161,7 +177,8 @@ const App: React.FC = () => {
     </div>
   );
 
-  const maxComponentUsage = Math.max(...data.github.componentUsageCount.map((comp) => comp.count), 1);
+  const maxGithubRepoUsage = Math.max(...data.github.topConsumingRepos.map((item) => item.imports), 1);
+  const maxGithubComponentUsage = Math.max(...data.github.topImportedComponents.map((item) => item.count), 1);
   const maxFigmaComponentUsage = Math.max(...(data.figma?.topComponentUsage.map((item) => item.usages) ?? [1]), 1);
   const maxFigmaTeamUsage = Math.max(...(data.figma?.topLibraryConsumingTeams.map((item) => item.usages) ?? [1]), 1);
   const figmaInsertions = data.figma?.componentInsertionsLast30Days ?? 0;
@@ -173,6 +190,25 @@ const App: React.FC = () => {
   const figmaDetachmentsPercentage = figmaAdoptionTotal > 0
     ? 100 - figmaInsertionsPercentage
     : 0;
+  const contentPublishedEntries = data.contentful.publishedEntries;
+  const contentDraftEntries = data.contentful.draftEntries;
+  const contentPublishTotal = contentPublishedEntries + contentDraftEntries;
+  const contentPublishedPercentage = contentPublishTotal > 0
+    ? Math.round((contentPublishedEntries / contentPublishTotal) * 100)
+    : 0;
+  const contentDraftPercentage = contentPublishTotal > 0
+    ? 100 - contentPublishedPercentage
+    : 0;
+  const formatDelta = (value: number) => `${value > 0 ? '+' : ''}${value}`;
+  const weeklyPublishRateDeltaClassName = data.contentful.weeklyPublishRateDelta >= 0
+    ? 'text-secondary-springGreen dark:text-secondary-springGreenTint'
+    : 'text-brand-red dark:text-brand-redTint';
+  const recentAssetUploadsDeltaClassName = data.contentful.recentAssetUploadsDelta >= 0
+    ? 'text-secondary-springGreen dark:text-secondary-springGreenTint'
+    : 'text-brand-red dark:text-brand-redTint';
+  const repoViewsDeltaClassName = data.github.repoViews14dDelta >= 0
+    ? 'text-secondary-springGreen dark:text-secondary-springGreenTint'
+    : 'text-brand-red dark:text-brand-redTint';
   const maxContentTypeEntries = Math.max(...data.contentful.contentTypeDistribution.map((item) => item.entries), 1);
   const pillarOrder: Pillar[] = ['design', 'code', 'content'];
   const areAllPillarsVisible = activePillars.length === 0;
@@ -192,8 +228,31 @@ const App: React.FC = () => {
     ? 'border-secondary-springGreen/40 bg-secondary-springGreen/10 text-secondary-springGreen dark:border-secondary-springGreen/50 dark:bg-secondary-springGreen/20'
     : 'border-brand-redTint/40 bg-brand-redTint/10 text-brand-red dark:border-brand-redTint/60 dark:bg-brand-redTint/20 dark:text-neutral-5';
   const unavailableStatusClassName = 'border-brand-redTint/40 bg-brand-redTint/10 text-brand-red dark:border-brand-redTint/60 dark:bg-brand-redTint/20 dark:text-neutral-5';
-  const githubStatusLabel = 'GitHub: Not Connected';
-  const contentfulStatusLabel = 'Contentful: Not Connected';
+  const githubStatusLabel = githubStatus?.mode === 'mock'
+    ? 'GitHub: Mock Mode'
+    : githubStatus?.ready
+      ? 'GitHub: Ready'
+      : githubStatus?.configured === false
+        ? 'GitHub: Not Configured'
+        : githubStatus?.configured === true
+          ? 'GitHub: Access Error'
+          : 'GitHub: Status Unknown';
+  const githubStatusClassName = githubStatus?.mode === 'mock'
+    ? 'border-secondary-lemonYellow/50 bg-secondary-lemonYellow/20 text-semantic-textNeutral dark:border-secondary-lemonYellow/60 dark:bg-secondary-lemonYellow/10 dark:text-secondary-lemonYellow'
+    : githubStatus?.ready
+      ? 'border-secondary-springGreen/40 bg-secondary-springGreen/10 text-secondary-springGreen dark:border-secondary-springGreen/50 dark:bg-secondary-springGreen/20'
+      : unavailableStatusClassName;
+  const contentfulStatusLabel = contentfulStatus?.ready
+    ? 'Contentful: Ready'
+    : contentfulStatus?.configured === false
+      ? 'Contentful: Not Configured'
+      : contentfulStatus?.configured === true
+        ? 'Contentful: Access Error'
+        : 'Contentful: Status Unknown';
+
+  const contentfulStatusClassName = contentfulStatus?.ready
+    ? 'border-secondary-springGreen/40 bg-secondary-springGreen/10 text-secondary-springGreen dark:border-secondary-springGreen/50 dark:bg-secondary-springGreen/20'
+    : 'border-brand-redTint/40 bg-brand-redTint/10 text-brand-red dark:border-brand-redTint/60 dark:bg-brand-redTint/20 dark:text-neutral-5';
 
   const togglePillar = (pillar: Pillar) => {
     setActivePillars((current) => {
@@ -223,10 +282,10 @@ const App: React.FC = () => {
               <div className={`rounded-tokenFull border px-spacing-12 py-spacing-4 text-[11px] font-semibold uppercase tracking-wide ${figmaStatusClassName}`}>
                 {figmaStatusLabel}
               </div>
-              <div className={`rounded-tokenFull border px-spacing-12 py-spacing-4 text-[11px] font-semibold uppercase tracking-wide ${unavailableStatusClassName}`}>
+              <div className={`rounded-tokenFull border px-spacing-12 py-spacing-4 text-[11px] font-semibold uppercase tracking-wide ${githubStatusClassName}`}>
                 {githubStatusLabel}
               </div>
-              <div className={`rounded-tokenFull border px-spacing-12 py-spacing-4 text-[11px] font-semibold uppercase tracking-wide ${unavailableStatusClassName}`}>
+              <div className={`rounded-tokenFull border px-spacing-12 py-spacing-4 text-[11px] font-semibold uppercase tracking-wide ${contentfulStatusClassName}`}>
                 {contentfulStatusLabel}
               </div>
             </div>
@@ -265,7 +324,7 @@ const App: React.FC = () => {
             onClick={() => togglePillar('content')}
             className={`rounded-tokenFull border px-spacing-16 py-spacing-8 text-sm font-semibold transition ${
               isPillarActive('content')
-                ? 'border-secondary-aquaBlue bg-secondary-aquaBlue text-neutral-white dark:border-secondary-blue dark:bg-secondary-blue dark:text-neutral-white'
+                ? 'border-secondary-aquaBlue bg-secondary-aquaBlue text-neutral-white dark:border-secondary-aquaBlue dark:bg-secondary-aquaBlue dark:text-neutral-95'
                 : 'border-semantic-borderSubtle bg-semantic-backgroundNeutral text-neutral-60 dark:border-neutral-50/70 dark:bg-neutral-85 dark:text-neutral-25'
             }`}
           >
@@ -287,7 +346,12 @@ const App: React.FC = () => {
           
           {/* 1. FIGMA */}
           {isPillarActive('design') && (
-          <KpiCard title="Design" icon={<FigmaMonochromeIcon />} hideOutline>
+          <KpiCard
+            title="Design"
+            icon={<FigmaMonochromeIcon />}
+            hideOutline
+            accentClassName="bg-brand-vodafone dark:bg-brand-redTint"
+          >
              {data.figma ? (
                <>
                  <h4 className={sectionTitleClass}>Library Footprint</h4>
@@ -406,12 +470,92 @@ const App: React.FC = () => {
 
           {/* 2. GITHUB / REACT COMPONENTS */}
           {isPillarActive('code') && (
-          <KpiCard title="Code" icon={<ReactMonochromeIcon />} hideOutline>
-            <div className="mb-spacing-24 flex items-center justify-between rounded-sm border border-semantic-borderSubtle bg-neutral-5 p-spacing-12 dark:border-neutral-50/70 dark:bg-neutral-95">
-               <span className="text-sm font-medium text-neutral-60 dark:text-neutral-25">Open Pull Requests</span>
-               <span className="rounded-tokenFull border border-secondary-springGreen/30 bg-secondary-springGreen/10 px-spacing-12 py-spacing-4 text-xs font-bold text-secondary-springGreen dark:border-secondary-springGreen/50 dark:bg-secondary-springGreen/20">
-                 {data.github.openPRs} Active
-               </span>
+          <KpiCard
+            title="Code"
+            icon={<GitHubMonochromeIcon />}
+            hideOutline
+            accentClassName="bg-brand-vodafone dark:bg-brand-redTint"
+          >
+            <h4 className={sectionTitleClass}>External Adoption</h4>
+            <div className="rounded-tokenFull border border-semantic-borderSubtle bg-semantic-backgroundNeutral px-spacing-12 py-spacing-4 text-[11px] font-semibold uppercase tracking-wide text-neutral-60 dark:border-neutral-50/70 dark:bg-neutral-95 dark:text-neutral-25">
+              Source: {data.github.source === 'mock' ? 'Mock Data' : 'Live GitHub API'}
+            </div>
+            <div className="overflow-hidden rounded-sm border border-semantic-borderSubtle dark:border-neutral-50/70">
+              <div className="bg-neutral-5 p-spacing-12 text-left dark:bg-neutral-95">
+                <div className="text-4xl font-light text-neutral-95 dark:text-neutral-5">
+                  {data.github.consumingRepos30d.toLocaleString()}
+                </div>
+                <div className="mt-spacing-4 text-[10px] font-bold uppercase tracking-wider text-semantic-textNeutral dark:text-neutral-25">
+                  Consuming Repos (30d)
+                </div>
+              </div>
+              <div className="border-t border-brand-redTint/40 bg-brand-redTint/10 p-spacing-12 text-left dark:border-brand-redTint/50 dark:bg-brand-redTint/20">
+                <div className="text-4xl font-light text-brand-red dark:text-neutral-5">
+                  {data.github.newConsumingRepos30d.toLocaleString()}
+                </div>
+                <div className="mt-spacing-4 text-[10px] font-bold uppercase tracking-wider text-brand-red dark:text-neutral-5">
+                  New Consuming Repos (30d)
+                </div>
+              </div>
+              <div className="border-t border-secondary-aquaBlue/30 bg-secondary-aquaBlue/10 p-spacing-12 text-left dark:border-secondary-aquaBlue/40 dark:bg-secondary-aquaBlue/20">
+                <div className="text-4xl font-light text-secondary-turquoise dark:text-secondary-aquaBlue">
+                  {data.github.organization}
+                </div>
+                <div className="mt-spacing-4 text-[10px] font-bold uppercase tracking-wider text-secondary-aquaBlue dark:text-neutral-5">
+                  Organization Scope
+                </div>
+              </div>
+            </div>
+            <div className="my-spacing-16 h-px bg-semantic-borderSubtle/50 dark:bg-neutral-50/50"></div>
+            <h4 className={sectionTitleClass}>Repo Traffic (14d)</h4>
+            <div className="grid grid-cols-2 gap-spacing-12">
+              <div className="rounded-sm border border-brand-redTint/30 bg-brand-redTint/10 p-spacing-12 dark:bg-brand-redTint/20">
+                <div className="text-xs uppercase tracking-wide text-brand-red dark:text-neutral-5">Views (14d)</div>
+                <div className="mt-spacing-4 text-xl font-light text-brand-vodafone dark:text-brand-redTint">{data.github.repoViews14d.toLocaleString()}</div>
+                <div className={`mt-spacing-4 text-[10px] font-semibold uppercase tracking-wide ${repoViewsDeltaClassName}`}>
+                  vs prev 14d {formatDelta(data.github.repoViews14dDelta)}
+                </div>
+              </div>
+              <div className="rounded-sm border border-secondary-aquaBlue/30 bg-secondary-aquaBlue/10 p-spacing-12 dark:bg-secondary-aquaBlue/20">
+                <div className="text-xs uppercase tracking-wide text-secondary-aquaBlue dark:text-neutral-5">Clones (14d)</div>
+                <div className="mt-spacing-4 text-xl font-light text-secondary-turquoise dark:text-secondary-aquaBlue">{data.github.repoClones14d.toLocaleString()}</div>
+                <div className="mt-spacing-4 text-[10px] font-semibold uppercase tracking-wide text-secondary-aquaBlue dark:text-neutral-5">
+                  Unique cloners {data.github.uniqueCloners14d.toLocaleString()}
+                </div>
+              </div>
+            </div>
+            <div className="rounded-sm border border-semantic-borderSubtle bg-neutral-5 p-spacing-12 dark:border-neutral-50/70 dark:bg-neutral-95">
+              <div className="text-[10px] uppercase tracking-wide text-neutral-60 dark:text-neutral-25">Unique Visitors (14d)</div>
+              <div className="mt-spacing-4 text-lg font-light text-semantic-textNeutral dark:text-neutral-5">{data.github.uniqueVisitors14d.toLocaleString()}</div>
+            </div>
+            <h4 className={sectionTitleClass}>Issue & PR Health</h4>
+            <div className="grid grid-cols-3 gap-spacing-12">
+              <div className="rounded-sm border border-semantic-borderSubtle bg-neutral-5 p-spacing-12 dark:border-neutral-50/70 dark:bg-neutral-95">
+                <div className="text-[10px] uppercase tracking-wide text-neutral-60 dark:text-neutral-25">Open Bugs</div>
+                <div className="mt-spacing-4 text-lg font-light text-semantic-textNeutral dark:text-neutral-5">{data.github.openBugs}</div>
+              </div>
+              <div className="rounded-sm border border-brand-redTint/30 bg-brand-redTint/10 p-spacing-12 dark:bg-brand-redTint/20">
+                <div className="text-[10px] uppercase tracking-wide text-brand-red dark:text-neutral-5">Critical Bugs</div>
+                <div className="mt-spacing-4 text-lg font-light text-brand-vodafone dark:text-brand-redTint">{data.github.openCriticalBugs}</div>
+              </div>
+              <div className="rounded-sm border border-semantic-borderSubtle bg-neutral-5 p-spacing-12 dark:border-neutral-50/70 dark:bg-neutral-95">
+                <div className="text-[10px] uppercase tracking-wide text-neutral-60 dark:text-neutral-25">Median Bug Age</div>
+                <div className="mt-spacing-4 text-lg font-light text-semantic-textNeutral dark:text-neutral-5">{data.github.medianBugAgeDays}d</div>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-spacing-12">
+              <div className="rounded-sm border border-secondary-aquaBlue/30 bg-secondary-aquaBlue/10 p-spacing-12 dark:bg-secondary-aquaBlue/20">
+                <div className="text-[10px] uppercase tracking-wide text-secondary-aquaBlue dark:text-neutral-5">Bugs Opened vs Closed (7d)</div>
+                <div className="mt-spacing-4 text-lg font-light text-secondary-turquoise dark:text-secondary-aquaBlue">
+                  {data.github.bugsOpened7d} / {data.github.bugsClosed7d}
+                </div>
+              </div>
+              <div className="rounded-sm border border-semantic-borderSubtle bg-neutral-5 p-spacing-12 dark:border-neutral-50/70 dark:bg-neutral-95">
+                <div className="text-[10px] uppercase tracking-wide text-neutral-60 dark:text-neutral-25">Open PRs / Older than 7d</div>
+                <div className="mt-spacing-4 text-lg font-light text-semantic-textNeutral dark:text-neutral-5">
+                  {data.github.openPRs} / {data.github.openPROlderThan7d}
+                </div>
+              </div>
             </div>
             <div className="grid grid-cols-3 gap-spacing-12">
               <div className="rounded-sm border border-semantic-borderSubtle bg-neutral-5 p-spacing-12 dark:border-neutral-50/70 dark:bg-neutral-95">
@@ -419,32 +563,38 @@ const App: React.FC = () => {
                 <div className="mt-spacing-4 text-lg font-light text-semantic-textNeutral dark:text-neutral-5">{data.github.mergedPRs7d}</div>
               </div>
               <div className="rounded-sm border border-semantic-borderSubtle bg-neutral-5 p-spacing-12 dark:border-neutral-50/70 dark:bg-neutral-95">
-                <div className="text-[10px] uppercase tracking-wide text-neutral-60 dark:text-neutral-25">Avg Review</div>
-                <div className="mt-spacing-4 text-lg font-light text-semantic-textNeutral dark:text-neutral-5">{data.github.avgReviewTimeHours}h</div>
+                <div className="text-[10px] uppercase tracking-wide text-neutral-60 dark:text-neutral-25">First Review (Median)</div>
+                <div className="mt-spacing-4 text-lg font-light text-semantic-textNeutral dark:text-neutral-5">{data.github.medianTimeToFirstReviewHours}h</div>
               </div>
               <div className="rounded-sm border border-semantic-borderSubtle bg-neutral-5 p-spacing-12 dark:border-neutral-50/70 dark:bg-neutral-95">
-                <div className="text-[10px] uppercase tracking-wide text-neutral-60 dark:text-neutral-25">Open Issues</div>
-                <div className="mt-spacing-4 text-lg font-light text-semantic-textNeutral dark:text-neutral-5">{data.github.openIssues}</div>
+                <div className="text-[10px] uppercase tracking-wide text-neutral-60 dark:text-neutral-25">Time to Merge (Median)</div>
+                <div className="mt-spacing-4 text-lg font-light text-semantic-textNeutral dark:text-neutral-5">{data.github.medianTimeToMergeHours}h</div>
               </div>
             </div>
-            <ProgressBar
-              label="Build Success Rate"
-              value={data.github.buildSuccessRate}
-              max={100}
-              color="bg-secondary-springGreen dark:bg-secondary-springGreenTint"
-            />
-            <div className="text-xs text-neutral-60 dark:text-neutral-25">Commits (7d): {data.github.commitVolume7d}</div>
-            
-            <h4 className="mb-spacing-12 text-xs font-bold uppercase tracking-wider text-neutral-60 dark:text-neutral-25">Top Components in React</h4>
-            <ul className="space-y-spacing-16">
-              {data.github.componentUsageCount.map((comp) => (
-                <li key={comp.componentName}>
-                   <ProgressBar 
-                     label={comp.componentName} 
-                     value={comp.count} 
-                     max={maxComponentUsage}
-                     color="bg-neutral-95 dark:bg-neutral-5" 
-                   />
+            <div className="my-spacing-16 h-px bg-semantic-borderSubtle/50 dark:bg-neutral-50/50"></div>
+            <h4 className={sectionTitleClass}>Top Consuming Repositories</h4>
+            <ul className="space-y-spacing-12">
+              {data.github.topConsumingRepos.map((item) => (
+                <li key={item.repo}>
+                  <ProgressBar
+                    label={item.repo}
+                    value={item.imports}
+                    max={maxGithubRepoUsage}
+                    color="bg-secondary-turquoise dark:bg-secondary-turquoiseTint"
+                  />
+                </li>
+              ))}
+            </ul>
+            <h4 className={`${sectionTitleClass} mt-spacing-4`}>Top Imported Components</h4>
+            <ul className="space-y-spacing-12">
+              {data.github.topImportedComponents.map((item) => (
+                <li key={item.componentName}>
+                  <ProgressBar
+                    label={item.componentName}
+                    value={item.count}
+                    max={maxGithubComponentUsage}
+                    color="bg-secondary-aquaBlue dark:bg-secondary-aquaBlueTint"
+                  />
                 </li>
               ))}
             </ul>
@@ -453,56 +603,122 @@ const App: React.FC = () => {
 
           {/* 3. CONTENTFUL */}
           {isPillarActive('content') && (
-          <KpiCard title="Content" icon={<ContentfulMonochromeIcon />}>
-            <div className="grid grid-cols-2 gap-spacing-16">
-              <div className="rounded-sm border border-secondary-aquaBlue/30 bg-secondary-aquaBlue/10 p-spacing-12 text-center dark:bg-secondary-aquaBlue/20">
-                <div className="text-2xl font-light text-secondary-blue dark:text-secondary-aquaBlue">{data.contentful.publishedEntries}</div>
-                <div className="mt-spacing-4 text-[10px] font-bold uppercase tracking-wider text-secondary-aquaBlue dark:text-neutral-5">Published</div>
+          <KpiCard
+            title="Content"
+            icon={<ContentfulMonochromeIcon />}
+            hideOutline
+            accentClassName="bg-brand-vodafone dark:bg-brand-redTint"
+          >
+            <h4 className={sectionTitleClass}>Content Footprint</h4>
+            <div className="overflow-hidden rounded-sm border border-semantic-borderSubtle dark:border-neutral-50/70">
+              <div className="bg-neutral-5 p-spacing-12 text-left dark:bg-neutral-95">
+                <div className="text-4xl font-light text-neutral-95 dark:text-neutral-5">
+                  {data.contentful.totalEntries.toLocaleString()}
+                </div>
+                <div className="mt-spacing-4 text-[10px] font-bold uppercase tracking-wider text-semantic-textNeutral dark:text-neutral-25">
+                  Total Content Entries
+                </div>
               </div>
-              <div className="rounded-sm border border-secondary-freshOrange/30 bg-secondary-freshOrange/10 p-spacing-12 text-center dark:bg-secondary-freshOrange/20">
-                <div className="text-2xl font-light text-secondary-freshOrange dark:text-secondary-freshOrange">{data.contentful.draftEntries}</div>
-                <div className="mt-spacing-4 text-[10px] font-bold uppercase tracking-wider text-secondary-freshOrange dark:text-neutral-5">Drafts</div>
+              <div className="border-t border-brand-redTint/40 bg-brand-redTint/10 p-spacing-12 text-left dark:border-brand-redTint/50 dark:bg-brand-redTint/20">
+                <div className="text-4xl font-light text-brand-red dark:text-neutral-5">
+                  {contentPublishedEntries.toLocaleString()}
+                </div>
+                <div className="mt-spacing-4 text-[10px] font-bold uppercase tracking-wider text-brand-red dark:text-neutral-5">
+                  Published Entries
+                </div>
+              </div>
+              <div className="border-t border-secondary-aquaBlue/30 bg-secondary-aquaBlue/10 p-spacing-12 text-left dark:border-secondary-aquaBlue/40 dark:bg-secondary-aquaBlue/20">
+                <div className="text-4xl font-light text-secondary-turquoise dark:text-secondary-aquaBlue">
+                  {contentDraftEntries.toLocaleString()}
+                </div>
+                <div className="mt-spacing-4 text-[10px] font-bold uppercase tracking-wider text-secondary-aquaBlue dark:text-neutral-5">
+                  Draft Entries
+                </div>
               </div>
             </div>
-            <div className="grid grid-cols-3 gap-spacing-12">
-              <div className="rounded-sm border border-secondary-blue/30 bg-secondary-blue/10 p-spacing-12 dark:bg-secondary-blue/20">
-                <div className="text-[10px] uppercase tracking-wide text-secondary-blue dark:text-neutral-5">Locales</div>
-                <div className="mt-spacing-4 text-lg font-light text-secondary-blue dark:text-secondary-aquaBlue">{data.contentful.locales}</div>
+            <div className="my-spacing-16 h-px bg-semantic-borderSubtle/50 dark:bg-neutral-50/50"></div>
+            <h4 className={sectionTitleClass}>Publishing Health</h4>
+            <div className="space-y-spacing-8">
+              <div className="flex justify-between text-xs font-medium">
+                <span className="text-neutral-60 dark:text-neutral-25">Published vs Draft</span>
+                <span className="font-light text-semantic-textNeutral dark:text-neutral-5">{contentPublishedPercentage}% Published</span>
               </div>
-              <div className="rounded-sm border border-secondary-lemonYellow/40 bg-secondary-lemonYellow/20 p-spacing-12 dark:bg-secondary-lemonYellow/30">
-                <div className="text-[10px] uppercase tracking-wide text-semantic-textNeutral dark:text-neutral-95">Scheduled</div>
-                <div className="mt-spacing-4 text-lg font-light text-semantic-textNeutral dark:text-neutral-95">{data.contentful.scheduledEntries}</div>
+              <div className="h-spacing-8 w-full overflow-hidden rounded-tokenFull bg-neutral-25 dark:bg-neutral-85">
+                <div className="flex h-full w-full">
+                  <div
+                    className="h-full bg-brand-vodafone transition-all duration-1000 ease-out dark:bg-brand-redTint"
+                    style={{ width: `${contentPublishedPercentage}%` }}
+                  />
+                  <div
+                    className="h-full bg-secondary-aquaBlue transition-all duration-1000 ease-out dark:bg-secondary-aquaBlueTint"
+                    style={{ width: `${contentDraftPercentage}%` }}
+                  />
+                </div>
+              </div>
+              <div className="flex flex-wrap items-center justify-between gap-spacing-8 text-[11px] font-medium">
+                <span className="text-brand-vodafone dark:text-brand-redTint">
+                  Published: {contentPublishedEntries.toLocaleString()} ({contentPublishedPercentage}%)
+                </span>
+                <span className="text-secondary-aquaBlue dark:text-secondary-aquaBlueTint">
+                  Drafts: {contentDraftEntries.toLocaleString()} ({contentDraftPercentage}%)
+                </span>
+              </div>
+            </div>
+            <h4 className={sectionTitleClass}>Activity</h4>
+            <div className="grid grid-cols-2 gap-spacing-12">
+              <div className="rounded-sm border border-brand-redTint/30 bg-brand-redTint/10 p-spacing-12 dark:bg-brand-redTint/20">
+                <div className="text-xs uppercase tracking-wide text-brand-red dark:text-neutral-5">Published (7d)</div>
+                <div className="mt-spacing-4 text-xl font-light text-brand-vodafone dark:text-brand-redTint">{data.contentful.weeklyPublishRate.toLocaleString()}</div>
+                <div className={`mt-spacing-4 text-[10px] font-semibold uppercase tracking-wide ${weeklyPublishRateDeltaClassName}`}>
+                  vs prev 7d {formatDelta(data.contentful.weeklyPublishRateDelta)}
+                </div>
               </div>
               <div className="rounded-sm border border-secondary-aquaBlue/30 bg-secondary-aquaBlue/10 p-spacing-12 dark:bg-secondary-aquaBlue/20">
-                <div className="text-[10px] uppercase tracking-wide text-secondary-aquaBlue dark:text-neutral-5">Assets (24h)</div>
-                <div className="mt-spacing-4 text-lg font-light text-secondary-aquaBlue dark:text-secondary-aquaBlue">{data.contentful.recentAssetUploads}</div>
+                <div className="text-xs uppercase tracking-wide text-secondary-aquaBlue dark:text-neutral-5">Assets (24h)</div>
+                <div className="mt-spacing-4 text-xl font-light text-secondary-turquoise dark:text-secondary-aquaBlue">{data.contentful.recentAssetUploads.toLocaleString()}</div>
+                <div className={`mt-spacing-4 text-[10px] font-semibold uppercase tracking-wide ${recentAssetUploadsDeltaClassName}`}>
+                  vs prev 24h {formatDelta(data.contentful.recentAssetUploadsDelta)}
+                </div>
               </div>
             </div>
-            <ProgressBar 
-               label="Total Enabled Components in Contentful" 
-               value={data.contentful.totalEntries} 
-               max={2000} 
-               color="bg-secondary-blue dark:bg-secondary-blueTint" 
-             />
-            <ProgressBar
-              label="Weekly Publish Rate"
-              value={data.contentful.weeklyPublishRate}
-              max={200}
-              color="bg-secondary-aquaBlue dark:bg-secondary-aquaBlueTint"
-            />
-            <h4 className="text-xs font-bold uppercase tracking-wider text-neutral-60 dark:text-neutral-25">Content Type Distribution</h4>
-            <ul className="space-y-spacing-12">
-              {data.contentful.contentTypeDistribution.map((item) => (
-                <li key={item.contentType}>
-                  <ProgressBar
-                    label={item.contentType}
-                    value={item.entries}
-                    max={maxContentTypeEntries}
-                    color="bg-secondary-turquoise dark:bg-secondary-turquoiseTint"
-                  />
-                </li>
-              ))}
-            </ul>
+            <div className="grid grid-cols-2 gap-spacing-12">
+              <div className="rounded-sm border border-brand-redTint/30 bg-brand-redTint/10 p-spacing-12 dark:bg-brand-redTint/20">
+                <div className="text-[10px] uppercase tracking-wide text-brand-red dark:text-neutral-5">Stale Drafts (30d+)</div>
+                <div className="mt-spacing-4 text-lg font-light text-brand-vodafone dark:text-brand-redTint">{data.contentful.staleDraftEntries}</div>
+              </div>
+              <div className="rounded-sm border border-secondary-aquaBlue/30 bg-secondary-aquaBlue/10 p-spacing-12 dark:bg-secondary-aquaBlue/20">
+                <div className="text-[10px] uppercase tracking-wide text-secondary-aquaBlue dark:text-neutral-5">Scheduled (Next 7d)</div>
+                <div className="mt-spacing-4 text-lg font-light text-secondary-turquoise dark:text-secondary-aquaBlue">{data.contentful.scheduledEntriesNext7Days}</div>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-spacing-12">
+              <div className="rounded-sm border border-semantic-borderSubtle bg-neutral-5 p-spacing-12 dark:border-neutral-50/70 dark:bg-neutral-95">
+                <div className="text-[10px] uppercase tracking-wide text-neutral-60 dark:text-neutral-25">Locales</div>
+                <div className="mt-spacing-4 text-lg font-light text-semantic-textNeutral dark:text-neutral-5">{data.contentful.locales}</div>
+              </div>
+              <div className="rounded-sm border border-semantic-borderSubtle bg-neutral-5 p-spacing-12 dark:border-neutral-50/70 dark:bg-neutral-95">
+                <div className="text-[10px] uppercase tracking-wide text-neutral-60 dark:text-neutral-25">Scheduled (Total)</div>
+                <div className="mt-spacing-4 text-lg font-light text-semantic-textNeutral dark:text-neutral-5">{data.contentful.scheduledEntries}</div>
+              </div>
+            </div>
+            <div className="my-spacing-16 h-px bg-semantic-borderSubtle/50 dark:bg-neutral-50/50"></div>
+            <h4 className={sectionTitleClass}>Content Type Distribution</h4>
+            {data.contentful.contentTypeDistribution.length > 0 ? (
+              <ul className="space-y-spacing-12">
+                {data.contentful.contentTypeDistribution.map((item) => (
+                  <li key={item.contentType}>
+                    <ProgressBar
+                      label={item.contentType}
+                      value={item.entries}
+                      max={maxContentTypeEntries}
+                      color="bg-secondary-aquaBlue dark:bg-secondary-aquaBlueTint"
+                    />
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <div className="text-xs text-neutral-60 dark:text-neutral-25">No content type distribution data available.</div>
+            )}
           </KpiCard>
           )}
 
