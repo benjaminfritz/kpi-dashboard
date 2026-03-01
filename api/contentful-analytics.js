@@ -6,6 +6,11 @@ const DEFAULT_STALE_DRAFT_DAYS = 30;
 const DEFAULT_SCHEDULE_WINDOW_DAYS = 7;
 const MAX_TOP_CONTENT_TYPES = 5;
 const MAX_CONTENT_TYPE_SAMPLE = 30;
+const DEFAULT_CONTENT_TYPE_DISTRIBUTION_CONCURRENCY = 3;
+const DEFAULT_RATE_LIMIT_RETRIES = 5;
+const DEFAULT_BASE_RETRY_DELAY_MS = 250;
+const DEFAULT_MAX_RETRY_DELAY_MS = 8000;
+const DEFAULT_CONTENT_TYPE_DISTRIBUTION_CACHE_TTL_MS = 5 * 60 * 1000;
 
 const pickFirst = (value) => (Array.isArray(value) ? value[0] : value);
 
@@ -16,6 +21,43 @@ const parsePositiveInteger = (value, fallback, min, max) => {
   if (!Number.isFinite(parsed) || parsed <= 0) return fallback;
   return clamp(parsed, min, max);
 };
+
+const CONTENT_TYPE_DISTRIBUTION_CONCURRENCY = parsePositiveInteger(
+  process.env.CONTENTFUL_CONTENT_TYPE_CONCURRENCY,
+  DEFAULT_CONTENT_TYPE_DISTRIBUTION_CONCURRENCY,
+  1,
+  10
+);
+
+const CONTENTFUL_RATE_LIMIT_RETRIES = parsePositiveInteger(
+  process.env.CONTENTFUL_RATE_LIMIT_RETRIES,
+  DEFAULT_RATE_LIMIT_RETRIES,
+  1,
+  10
+);
+
+const CONTENTFUL_BASE_RETRY_DELAY_MS = parsePositiveInteger(
+  process.env.CONTENTFUL_BASE_RETRY_DELAY_MS,
+  DEFAULT_BASE_RETRY_DELAY_MS,
+  100,
+  5000
+);
+
+const CONTENTFUL_MAX_RETRY_DELAY_MS = parsePositiveInteger(
+  process.env.CONTENTFUL_MAX_RETRY_DELAY_MS,
+  DEFAULT_MAX_RETRY_DELAY_MS,
+  250,
+  30000
+);
+
+const CONTENT_TYPE_DISTRIBUTION_CACHE_TTL_MS = parsePositiveInteger(
+  process.env.CONTENTFUL_CONTENT_TYPE_CACHE_TTL_MS,
+  DEFAULT_CONTENT_TYPE_DISTRIBUTION_CACHE_TTL_MS,
+  1000,
+  60 * 60 * 1000
+);
+
+const contentTypeDistributionCache = new Map();
 
 const parseDate = (value) => {
   if (typeof value !== "string" || value.length === 0) return null;
@@ -50,21 +92,65 @@ const parseErrorBody = async (response) => {
   }
 };
 
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const parseRetrySeconds = (value) => {
+  if (typeof value !== "string" || value.length === 0) return null;
+
+  const asSeconds = Number.parseFloat(value);
+  if (Number.isFinite(asSeconds) && asSeconds > 0) {
+    return asSeconds;
+  }
+
+  const asDate = new Date(value);
+  if (!Number.isNaN(asDate.getTime())) {
+    const deltaMs = asDate.getTime() - Date.now();
+    if (deltaMs > 0) return deltaMs / 1000;
+  }
+
+  return null;
+};
+
+const resolveRetryDelayMs = (response, attempt) => {
+  const resetHeader = response.headers.get("x-contentful-ratelimit-reset");
+  const retryAfterHeader = response.headers.get("retry-after");
+  const retrySeconds = parseRetrySeconds(resetHeader) ?? parseRetrySeconds(retryAfterHeader);
+  if (typeof retrySeconds === "number") {
+    return Math.ceil(retrySeconds * 1000);
+  }
+
+  const exponentialBackoff = CONTENTFUL_BASE_RETRY_DELAY_MS * 2 ** attempt;
+  const jitter = Math.floor(Math.random() * CONTENTFUL_BASE_RETRY_DELAY_MS);
+  return Math.min(CONTENTFUL_MAX_RETRY_DELAY_MS, exponentialBackoff + jitter);
+};
+
 const requestContentful = async ({ token, path, searchParams }) => {
   const query = new URLSearchParams(searchParams);
-  const response = await fetch(`${CONTENTFUL_API_BASE_URL}${path}?${query.toString()}`, {
-    headers: {
-      Accept: "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-  });
+  const url = `${CONTENTFUL_API_BASE_URL}${path}?${query.toString()}`;
 
-  if (!response.ok) {
+  for (let attempt = 0; attempt <= CONTENTFUL_RATE_LIMIT_RETRIES; attempt += 1) {
+    const response = await fetch(url, {
+      headers: {
+        Accept: "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (response.ok) {
+      return response.json();
+    }
+
+    if (response.status === 429 && attempt < CONTENTFUL_RATE_LIMIT_RETRIES) {
+      const retryDelayMs = resolveRetryDelayMs(response, attempt);
+      await sleep(retryDelayMs);
+      continue;
+    }
+
     const detail = await parseErrorBody(response);
     throw new Error(`Contentful request failed (${response.status}): ${detail}`);
   }
 
-  return response.json();
+  throw new Error("Contentful request failed: retry attempts exhausted");
 };
 
 const buildEnvironmentPath = (spaceId, environmentId, resourcePath) =>
@@ -168,7 +254,33 @@ const getContentTypeName = (contentType) => {
   return "Unknown Content Type";
 };
 
+const mapWithConcurrency = async (items, concurrency, mapper) => {
+  if (!Array.isArray(items) || items.length === 0) return [];
+
+  const limit = Math.max(1, concurrency);
+  const results = new Array(items.length);
+  let nextIndex = 0;
+
+  const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (true) {
+      const currentIndex = nextIndex;
+      nextIndex += 1;
+      if (currentIndex >= items.length) return;
+      results[currentIndex] = await mapper(items[currentIndex], currentIndex);
+    }
+  });
+
+  await Promise.all(workers);
+  return results;
+};
+
 const fetchContentTypeDistribution = async ({ token, spaceId, environmentId }) => {
+  const cacheKey = `${spaceId}:${environmentId}`;
+  const cached = contentTypeDistributionCache.get(cacheKey);
+  if (cached && cached.expiresAt > Date.now()) {
+    return cached.value;
+  }
+
   const payload = await requestContentful({
     token,
     path: buildEnvironmentPath(spaceId, environmentId, "/content_types"),
@@ -181,11 +293,17 @@ const fetchContentTypeDistribution = async ({ token, spaceId, environmentId }) =
   const contentTypes = Array.isArray(payload?.items) ? payload.items : [];
 
   if (contentTypes.length === 0) {
+    contentTypeDistributionCache.set(cacheKey, {
+      value: [],
+      expiresAt: Date.now() + CONTENT_TYPE_DISTRIBUTION_CACHE_TTL_MS,
+    });
     return [];
   }
 
-  const counts = await Promise.all(
-    contentTypes.map(async (contentType) => {
+  const counts = await mapWithConcurrency(
+    contentTypes,
+    CONTENT_TYPE_DISTRIBUTION_CONCURRENCY,
+    async (contentType) => {
       const contentTypeId = contentType?.sys?.id;
       if (typeof contentTypeId !== "string" || contentTypeId.length === 0) {
         return null;
@@ -203,13 +321,20 @@ const fetchContentTypeDistribution = async ({ token, spaceId, environmentId }) =
         contentType: getContentTypeName(contentType),
         entries,
       };
-    })
+    }
   );
 
-  return counts
+  const distribution = counts
     .filter((item) => item && item.entries > 0)
     .sort((a, b) => b.entries - a.entries)
     .slice(0, MAX_TOP_CONTENT_TYPES);
+
+  contentTypeDistributionCache.set(cacheKey, {
+    value: distribution,
+    expiresAt: Date.now() + CONTENT_TYPE_DISTRIBUTION_CACHE_TTL_MS,
+  });
+
+  return distribution;
 };
 
 export default async function handler(request, response) {
