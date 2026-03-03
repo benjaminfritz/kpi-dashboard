@@ -14,6 +14,10 @@ export interface FigmaData {
     componentName: string;
     usages: number;
   }[];
+  topDetachedComponents: {
+    componentName: string;
+    detachments: number;
+  }[];
 }
 
 export interface FigmaConfigStatus {

@@ -180,6 +180,7 @@ const App: React.FC = () => {
   const maxGithubRepoUsage = Math.max(...data.github.topConsumingRepos.map((item) => item.imports), 1);
   const maxGithubComponentUsage = Math.max(...data.github.topImportedComponents.map((item) => item.count), 1);
   const maxFigmaComponentUsage = Math.max(...(data.figma?.topComponentUsage.map((item) => item.usages) ?? [1]), 1);
+  const maxFigmaDetachedComponentCount = Math.max(...(data.figma?.topDetachedComponents.map((item) => item.detachments) ?? [1]), 1);
   const maxFigmaTeamUsage = Math.max(...(data.figma?.topLibraryConsumingTeams.map((item) => item.usages) ?? [1]), 1);
   const figmaInsertions = data.figma?.componentInsertionsLast30Days ?? 0;
   const figmaDetachments = data.figma?.componentDetachmentsLast30Days ?? 0;
@@ -421,6 +422,23 @@ const App: React.FC = () => {
                      <div className="mt-spacing-4 text-xl font-light text-secondary-turquoise dark:text-secondary-aquaBlue">{data.figma.componentDetachmentsLast30Days.toLocaleString()}</div>
                    </div>
                  </div>
+                 <h4 className={`${sectionTitleClass} mt-spacing-16`}>Most Detached Components (30d)</h4>
+                 {data.figma.topDetachedComponents.length > 0 ? (
+                   <ul className="space-y-spacing-12">
+                     {data.figma.topDetachedComponents.map((item) => (
+                       <li key={item.componentName}>
+                         <ProgressBar
+                           label={item.componentName}
+                           value={item.detachments}
+                           max={maxFigmaDetachedComponentCount}
+                           color="bg-secondary-aquaBlue dark:bg-secondary-aquaBlueTint"
+                         />
+                       </li>
+                     ))}
+                   </ul>
+                 ) : (
+                   <div className="text-xs text-neutral-60 dark:text-neutral-25">No component detachment data available for the selected period.</div>
+                 )}
                  <div className="my-spacing-16 h-px bg-semantic-borderSubtle/50 dark:bg-neutral-50/50"></div>
                  <h4 className={sectionTitleClass}>Top library consuming teams</h4>
                  {data.figma.topLibraryConsumingTeams.length > 0 ? (

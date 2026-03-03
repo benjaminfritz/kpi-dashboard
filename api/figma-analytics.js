@@ -187,6 +187,22 @@ const buildTopComponentUsage = (componentRows) => {
     .slice(0, MAX_TOP_COMPONENTS);
 };
 
+const buildTopDetachedComponents = (componentActionRows) => {
+  const detachmentsByComponent = new Map();
+
+  componentActionRows.forEach((row) => {
+    const normalizedName = getNormalizedComponentName(row);
+    const detachments = typeof row.detachments === "number" ? row.detachments : 0;
+    if (detachments <= 0) return;
+    detachmentsByComponent.set(normalizedName, (detachmentsByComponent.get(normalizedName) || 0) + detachments);
+  });
+
+  return Array.from(detachmentsByComponent.entries())
+    .map(([componentName, detachments]) => ({ componentName, detachments }))
+    .sort((a, b) => b.detachments - a.detachments)
+    .slice(0, MAX_TOP_COMPONENTS);
+};
+
 const getTeamName = (row) => {
   const candidates = [row?.team_name, row?.workspace_name, row?.teamName];
   for (const candidate of candidates) {
@@ -258,6 +274,7 @@ const aggregate = ({ componentActionRows, componentUsageRows, fileUsageRows }) =
     teamsUsingLibrary,
     topLibraryConsumingTeams,
     topComponentUsage: buildTopComponentUsage(componentUsageRows),
+    topDetachedComponents: buildTopDetachedComponents(componentActionRows),
   };
 };
 
