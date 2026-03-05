@@ -3,8 +3,9 @@ const DEFAULT_ENVIRONMENT_ID = "master";
 const DEFAULT_LOOKBACK_DAYS = 7;
 const DEFAULT_STALE_DRAFT_DAYS = 30;
 const DEFAULT_SCHEDULE_WINDOW_DAYS = 7;
-const MAX_TOP_CONTENT_TYPES = 5;
-const MAX_CONTENT_TYPE_SAMPLE = 30;
+const DEFAULT_TOP_CONTENT_TYPES = 15;
+const MAX_TOP_CONTENT_TYPES = 30;
+const CONTENT_TYPES_PAGE_LIMIT = 100;
 const DEFAULT_CONTENT_TYPE_DISTRIBUTION_CONCURRENCY = 3;
 const DEFAULT_RATE_LIMIT_RETRIES = 5;
 const DEFAULT_BASE_RETRY_DELAY_MS = 250;
@@ -273,23 +274,43 @@ const mapWithConcurrency = async (items, concurrency, mapper) => {
   return results;
 };
 
-const fetchContentTypeDistribution = async ({ token, spaceId, environmentId }) => {
+const fetchAllContentTypes = async ({ token, spaceId, environmentId }) => {
+  const items = [];
+  let skip = 0;
+
+  while (true) {
+    const payload = await requestContentful({
+      token,
+      path: buildEnvironmentPath(spaceId, environmentId, "/content_types"),
+      searchParams: {
+        limit: String(CONTENT_TYPES_PAGE_LIMIT),
+        skip: String(skip),
+        order: "name",
+      },
+    });
+
+    const pageItems = Array.isArray(payload?.items) ? payload.items : [];
+    items.push(...pageItems);
+
+    const total = typeof payload?.total === "number" ? payload.total : items.length;
+    skip += pageItems.length;
+
+    if (skip >= total || pageItems.length === 0) {
+      break;
+    }
+  }
+
+  return items;
+};
+
+const fetchContentTypeDistribution = async ({ token, spaceId, environmentId, topContentTypes }) => {
   const cacheKey = `${spaceId}:${environmentId}`;
   const cached = contentTypeDistributionCache.get(cacheKey);
   if (cached && cached.expiresAt > Date.now()) {
-    return cached.value;
+    return cached.value.slice(0, topContentTypes);
   }
 
-  const payload = await requestContentful({
-    token,
-    path: buildEnvironmentPath(spaceId, environmentId, "/content_types"),
-    searchParams: {
-      limit: String(MAX_CONTENT_TYPE_SAMPLE),
-      order: "name",
-    },
-  });
-
-  const contentTypes = Array.isArray(payload?.items) ? payload.items : [];
+  const contentTypes = await fetchAllContentTypes({ token, spaceId, environmentId });
 
   if (contentTypes.length === 0) {
     contentTypeDistributionCache.set(cacheKey, {
@@ -325,15 +346,14 @@ const fetchContentTypeDistribution = async ({ token, spaceId, environmentId }) =
 
   const distribution = counts
     .filter((item) => item && item.entries > 0)
-    .sort((a, b) => b.entries - a.entries)
-    .slice(0, MAX_TOP_CONTENT_TYPES);
+    .sort((a, b) => b.entries - a.entries);
 
   contentTypeDistributionCache.set(cacheKey, {
     value: distribution,
     expiresAt: Date.now() + CONTENT_TYPE_DISTRIBUTION_CACHE_TTL_MS,
   });
 
-  return distribution;
+  return distribution.slice(0, topContentTypes);
 };
 
 export default async function handler(request, response) {
@@ -376,6 +396,13 @@ export default async function handler(request, response) {
     DEFAULT_SCHEDULE_WINDOW_DAYS,
     1,
     60
+  );
+
+  const topContentTypes = parsePositiveInteger(
+    pickFirst(request.query?.top_content_types),
+    DEFAULT_TOP_CONTENT_TYPES,
+    1,
+    MAX_TOP_CONTENT_TYPES
   );
 
   const now = new Date();
@@ -466,7 +493,7 @@ export default async function handler(request, response) {
         windowStart: now,
         windowEnd: scheduleWindowEnd,
       }).catch(() => ({ total: 0, nextWindow: 0 })),
-      fetchContentTypeDistribution({ token, spaceId, environmentId }).catch((error) => {
+      fetchContentTypeDistribution({ token, spaceId, environmentId, topContentTypes }).catch((error) => {
         contentTypeDistributionError =
           error instanceof Error ? error.message : "Unknown content type distribution error";
         return [];
