@@ -278,6 +278,40 @@ const aggregate = ({ componentActionRows, componentUsageRows, fileUsageRows }) =
   };
 };
 
+export const loadFigmaAnalytics = async ({ query = {}, env = process.env } = {}) => {
+  const token = env.FIGMA_ACCESS_TOKEN;
+  const libraryFileKey = env.FIGMA_LIBRARY_FILE_KEY;
+
+  if (!token || !libraryFileKey) {
+    throw new Error("Missing Figma configuration");
+  }
+
+  const defaults = defaultDateRange();
+  const startDate = pickFirst(query.start_date) || defaults.startDate;
+  const endDate = pickFirst(query.end_date) || defaults.endDate;
+  const encodedLibraryKey = encodeURIComponent(libraryFileKey);
+
+  const [componentActionRows, componentUsageRows, fileUsageRows] = await Promise.all([
+    fetchPagedRows({
+      endpoint: `/analytics/libraries/${encodedLibraryKey}/component/actions`,
+      token,
+      params: { group_by: "component", start_date: startDate, end_date: endDate },
+    }),
+    fetchPagedRows({
+      endpoint: `/analytics/libraries/${encodedLibraryKey}/component/usages`,
+      token,
+      params: { group_by: "component", start_date: startDate, end_date: endDate },
+    }),
+    fetchPagedRows({
+      endpoint: `/analytics/libraries/${encodedLibraryKey}/component/usages`,
+      token,
+      params: { group_by: "file", start_date: startDate, end_date: endDate },
+    }),
+  ]);
+
+  return aggregate({ componentActionRows, componentUsageRows, fileUsageRows });
+};
+
 export default async function handler(request, response) {
   if (request.method !== "GET") {
     response.setHeader("Allow", "GET");
@@ -285,10 +319,7 @@ export default async function handler(request, response) {
     return;
   }
 
-  const token = process.env.FIGMA_ACCESS_TOKEN;
-  const libraryFileKey = process.env.FIGMA_LIBRARY_FILE_KEY;
-
-  if (!token || !libraryFileKey) {
+  if (!process.env.FIGMA_ACCESS_TOKEN || !process.env.FIGMA_LIBRARY_FILE_KEY) {
     response.status(503).json({
       message: "Missing Figma configuration",
       requiredEnv: ["FIGMA_ACCESS_TOKEN", "FIGMA_LIBRARY_FILE_KEY"],
@@ -296,33 +327,9 @@ export default async function handler(request, response) {
     return;
   }
 
-  const defaults = defaultDateRange();
-  const startDate = pickFirst(request.query?.start_date) || defaults.startDate;
-  const endDate = pickFirst(request.query?.end_date) || defaults.endDate;
-  const encodedLibraryKey = encodeURIComponent(libraryFileKey);
-
   try {
-    const [componentActionRows, componentUsageRows, fileUsageRows] = await Promise.all([
-      fetchPagedRows({
-        endpoint: `/analytics/libraries/${encodedLibraryKey}/component/actions`,
-        token,
-        params: { group_by: "component", start_date: startDate, end_date: endDate },
-      }),
-      fetchPagedRows({
-        endpoint: `/analytics/libraries/${encodedLibraryKey}/component/usages`,
-        token,
-        params: { group_by: "component", start_date: startDate, end_date: endDate },
-      }),
-      fetchPagedRows({
-        endpoint: `/analytics/libraries/${encodedLibraryKey}/component/usages`,
-        token,
-        params: { group_by: "file", start_date: startDate, end_date: endDate },
-      }),
-    ]);
-
-    response
-      .status(200)
-      .json(aggregate({ componentActionRows, componentUsageRows, fileUsageRows }));
+    const payload = await loadFigmaAnalytics({ query: request.query });
+    response.status(200).json(payload);
   } catch (error) {
     response.status(502).json({
       message: "Failed to load Figma library analytics",

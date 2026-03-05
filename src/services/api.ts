@@ -192,20 +192,6 @@ const isDashboardDataPayload = (payload: unknown): payload is DashboardData => {
   );
 };
 
-const persistDashboardSnapshot = async (data: DashboardData): Promise<void> => {
-  const response = await fetch('/api/dashboard-snapshots', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(data),
-  });
-
-  if (!response.ok) {
-    throw new Error(`Dashboard snapshot persistence failed with status ${response.status}`);
-  }
-};
-
 const fetchLatestStoredDashboardData = async (): Promise<DashboardData | null> => {
   const response = await fetch('/api/dashboard-snapshots-latest');
   if (response.status === 404) return null;
@@ -253,9 +239,6 @@ export const fetchDashboardData = async (): Promise<DashboardData> => {
   const hasFreshLiveData = Boolean(figmaData || contentfulData || githubData);
 
   if (hasFreshLiveData) {
-    persistDashboardSnapshot(dashboardData).catch((error) => {
-      console.warn("Unable to persist current dashboard snapshot", error);
-    });
     return dashboardData;
   }
 

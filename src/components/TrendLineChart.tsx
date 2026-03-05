@@ -339,7 +339,7 @@ export const TrendLineChart: React.FC<TrendLineChartProps> = ({ timeseries, acti
                             <span>Raw {formatRawValue(rawValue)}</span>
                           </>
                         ) : (
-                          <span>Value {formatRawValue(displayedValue)}</span>
+                          <span>{formatRawValue(displayedValue)}</span>
                         )}
                       </div>
                     );

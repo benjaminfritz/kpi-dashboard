@@ -356,50 +356,38 @@ const fetchContentTypeDistribution = async ({ token, spaceId, environmentId, top
   return distribution.slice(0, topContentTypes);
 };
 
-export default async function handler(request, response) {
-  if (request.method !== "GET") {
-    response.setHeader("Allow", "GET");
-    response.status(405).json({ message: "Method Not Allowed" });
-    return;
-  }
-
-  response.setHeader("Cache-Control", "no-store");
-
-  const token = process.env.CONTENTFUL_MANAGEMENT_TOKEN;
-  const spaceId = process.env.CONTENTFUL_SPACE_ID;
-  const environmentId = process.env.CONTENTFUL_ENVIRONMENT_ID || DEFAULT_ENVIRONMENT_ID;
+export const loadContentfulAnalytics = async ({ query = {}, env = process.env } = {}) => {
+  const token = env.CONTENTFUL_MANAGEMENT_TOKEN;
+  const spaceId = env.CONTENTFUL_SPACE_ID;
+  const environmentId = env.CONTENTFUL_ENVIRONMENT_ID || DEFAULT_ENVIRONMENT_ID;
 
   if (!token || !spaceId) {
-    response.status(503).json({
-      message: "Missing Contentful configuration",
-      requiredEnv: ["CONTENTFUL_MANAGEMENT_TOKEN", "CONTENTFUL_SPACE_ID"],
-    });
-    return;
+    throw new Error("Missing Contentful configuration");
   }
 
   const lookbackDays = parsePositiveInteger(
-    pickFirst(request.query?.lookback_days),
+    pickFirst(query.lookback_days),
     DEFAULT_LOOKBACK_DAYS,
     1,
     60
   );
 
   const staleDraftDays = parsePositiveInteger(
-    pickFirst(request.query?.stale_draft_days),
+    pickFirst(query.stale_draft_days),
     DEFAULT_STALE_DRAFT_DAYS,
     1,
     365
   );
 
   const scheduleWindowDays = parsePositiveInteger(
-    pickFirst(request.query?.schedule_window_days),
+    pickFirst(query.schedule_window_days),
     DEFAULT_SCHEDULE_WINDOW_DAYS,
     1,
     60
   );
 
   const topContentTypes = parsePositiveInteger(
-    pickFirst(request.query?.top_content_types),
+    pickFirst(query.top_content_types),
     DEFAULT_TOP_CONTENT_TYPES,
     1,
     MAX_TOP_CONTENT_TYPES
@@ -417,106 +405,127 @@ export default async function handler(request, response) {
   const scheduleWindowEnd = new Date(now);
   scheduleWindowEnd.setUTCDate(scheduleWindowEnd.getUTCDate() + scheduleWindowDays);
 
-  try {
-    let contentTypeDistributionError = null;
+  let contentTypeDistributionError = null;
 
-    const [
-      totalEntries,
-      publishedEntries,
-      draftEntries,
-      staleDraftEntries,
-      locales,
-      weeklyPublishRate,
-      previousWeeklyPublishRate,
-      totalAssets,
-      scheduledMetrics,
-      contentTypeDistribution,
-    ] = await Promise.all([
-      fetchCount({
-        token,
-        spaceId,
-        environmentId,
-        resourcePath: "/entries",
-      }),
-      fetchCount({
-        token,
-        spaceId,
-        environmentId,
-        resourcePath: "/entries",
-        filters: { "sys.publishedAt[exists]": "true" },
-      }),
-      fetchCount({
-        token,
-        spaceId,
-        environmentId,
-        resourcePath: "/entries",
-        filters: { "sys.publishedAt[exists]": "false" },
-      }),
-      fetchCount({
-        token,
-        spaceId,
-        environmentId,
-        resourcePath: "/entries",
-        filters: {
-          "sys.publishedAt[exists]": "false",
-          "sys.updatedAt[lte]": staleDraftCutoff.toISOString(),
-        },
-      }),
-      fetchSpaceCount({ token, spaceId, resourcePath: "/locales" }),
-      fetchCount({
-        token,
-        spaceId,
-        environmentId,
-        resourcePath: "/entries",
-        filters: { "sys.publishedAt[gte]": publishedSince.toISOString() },
-      }),
-      fetchCount({
-        token,
-        spaceId,
-        environmentId,
-        resourcePath: "/entries",
-        filters: {
-          "sys.publishedAt[gte]": previousPublishedSince.toISOString(),
-          "sys.publishedAt[lt]": publishedSince.toISOString(),
-        },
-      }),
-      fetchCount({
-        token,
-        spaceId,
-        environmentId,
-        resourcePath: "/assets",
-      }),
-      fetchScheduledEntries({
-        token,
-        spaceId,
-        environmentId,
-        windowStart: now,
-        windowEnd: scheduleWindowEnd,
-      }).catch(() => ({ total: 0, nextWindow: 0 })),
-      fetchContentTypeDistribution({ token, spaceId, environmentId, topContentTypes }).catch((error) => {
-        contentTypeDistributionError =
-          error instanceof Error ? error.message : "Unknown content type distribution error";
-        return [];
-      }),
-    ]);
+  const [
+    totalEntries,
+    publishedEntries,
+    draftEntries,
+    staleDraftEntries,
+    locales,
+    weeklyPublishRate,
+    previousWeeklyPublishRate,
+    totalAssets,
+    scheduledMetrics,
+    contentTypeDistribution,
+  ] = await Promise.all([
+    fetchCount({
+      token,
+      spaceId,
+      environmentId,
+      resourcePath: "/entries",
+    }),
+    fetchCount({
+      token,
+      spaceId,
+      environmentId,
+      resourcePath: "/entries",
+      filters: { "sys.publishedAt[exists]": "true" },
+    }),
+    fetchCount({
+      token,
+      spaceId,
+      environmentId,
+      resourcePath: "/entries",
+      filters: { "sys.publishedAt[exists]": "false" },
+    }),
+    fetchCount({
+      token,
+      spaceId,
+      environmentId,
+      resourcePath: "/entries",
+      filters: {
+        "sys.publishedAt[exists]": "false",
+        "sys.updatedAt[lte]": staleDraftCutoff.toISOString(),
+      },
+    }),
+    fetchSpaceCount({ token, spaceId, resourcePath: "/locales" }),
+    fetchCount({
+      token,
+      spaceId,
+      environmentId,
+      resourcePath: "/entries",
+      filters: { "sys.publishedAt[gte]": publishedSince.toISOString() },
+    }),
+    fetchCount({
+      token,
+      spaceId,
+      environmentId,
+      resourcePath: "/entries",
+      filters: {
+        "sys.publishedAt[gte]": previousPublishedSince.toISOString(),
+        "sys.publishedAt[lt]": publishedSince.toISOString(),
+      },
+    }),
+    fetchCount({
+      token,
+      spaceId,
+      environmentId,
+      resourcePath: "/assets",
+    }),
+    fetchScheduledEntries({
+      token,
+      spaceId,
+      environmentId,
+      windowStart: now,
+      windowEnd: scheduleWindowEnd,
+    }).catch(() => ({ total: 0, nextWindow: 0 })),
+    fetchContentTypeDistribution({ token, spaceId, environmentId, topContentTypes }).catch((error) => {
+      contentTypeDistributionError =
+        error instanceof Error ? error.message : "Unknown content type distribution error";
+      return [];
+    }),
+  ]);
 
-    const weeklyPublishRateDelta = weeklyPublishRate - previousWeeklyPublishRate;
+  const weeklyPublishRateDelta = weeklyPublishRate - previousWeeklyPublishRate;
 
-    response.status(200).json({
-      totalEntries,
-      publishedEntries,
-      draftEntries,
-      staleDraftEntries,
-      totalAssets,
-      locales,
-      scheduledEntries: scheduledMetrics.total,
-      scheduledEntriesNext7Days: scheduledMetrics.nextWindow,
-      weeklyPublishRate,
-      weeklyPublishRateDelta,
-      contentTypeDistributionStatus: contentTypeDistributionError ? "unavailable" : "ok",
-      contentTypeDistributionError,
-      contentTypeDistribution,
+  return {
+    totalEntries,
+    publishedEntries,
+    draftEntries,
+    staleDraftEntries,
+    totalAssets,
+    locales,
+    scheduledEntries: scheduledMetrics.total,
+    scheduledEntriesNext7Days: scheduledMetrics.nextWindow,
+    weeklyPublishRate,
+    weeklyPublishRateDelta,
+    contentTypeDistributionStatus: contentTypeDistributionError ? "unavailable" : "ok",
+    contentTypeDistributionError,
+    contentTypeDistribution,
+  };
+};
+
+export default async function handler(request, response) {
+  if (request.method !== "GET") {
+    response.setHeader("Allow", "GET");
+    response.status(405).json({ message: "Method Not Allowed" });
+    return;
+  }
+
+  response.setHeader("Cache-Control", "no-store");
+
+  if (!process.env.CONTENTFUL_MANAGEMENT_TOKEN || !process.env.CONTENTFUL_SPACE_ID) {
+    response.status(503).json({
+      message: "Missing Contentful configuration",
+      requiredEnv: ["CONTENTFUL_MANAGEMENT_TOKEN", "CONTENTFUL_SPACE_ID"],
     });
+    return;
+  }
+
+  try {
+    const payload = await loadContentfulAnalytics({ query: request.query });
+    response.status(200).json(payload);
   } catch (error) {
     response.status(502).json({
       message: "Failed to load Contentful analytics",
