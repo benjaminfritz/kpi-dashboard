@@ -135,3 +135,29 @@ export interface DashboardData {
   github: GithubData;
   lastUpdated: string;
 }
+
+export type TimeSpan = '7d' | '30d' | '90d' | '365d';
+
+export interface DashboardTimeseriesResponse {
+  span: TimeSpan;
+  days: string[];
+  series: {
+    design: Array<number | null>;
+    code: Array<number | null>;
+    content: Array<number | null>;
+  };
+  meta: {
+    metricKeys: {
+      design: 'figma.totalComponentUsages';
+      code: 'github.consumingRepos30d';
+      content: 'contentful.totalEntries';
+    };
+    aggregation: 'latest_per_day';
+    missing: 'null_gap';
+    window: {
+      startDay: string;
+      endDay: string;
+      monthOffset: number;
+    };
+  };
+}

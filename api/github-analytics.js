@@ -105,6 +105,45 @@ const buildLiveGithubAnalytics = async ({ token, owner, repo, org }) => {
   };
 };
 
+export const loadGithubAnalytics = async ({ query = {}, env = process.env } = {}) => {
+  const token = env.GITHUB_TOKEN;
+  const owner = env.GITHUB_OWNER;
+  const repo = env.GITHUB_REPO;
+  const org = env.GITHUB_ORG || owner;
+
+  const mode = resolveMode({
+    queryMode: pickFirst(query.mode),
+    envMode: env.GITHUB_ANALYTICS_MODE,
+  });
+
+  const allowMockFallback = parseBoolean(
+    pickFirst(query.allow_mock_fallback),
+    true
+  );
+
+  if (mode === "mock") {
+    return buildMockGithubAnalytics({ owner, repo, org });
+  }
+
+  if (!token || !owner || !repo) {
+    if (allowMockFallback) {
+      return buildMockGithubAnalytics({ owner, repo, org });
+    }
+
+    throw new Error("Missing GitHub configuration");
+  }
+
+  try {
+    return await buildLiveGithubAnalytics({ token, owner, repo, org });
+  } catch (error) {
+    if (allowMockFallback) {
+      return buildMockGithubAnalytics({ owner, repo, org });
+    }
+
+    throw error;
+  }
+};
+
 export default async function handler(request, response) {
   if (request.method !== "GET") {
     response.setHeader("Allow", "GET");
@@ -114,51 +153,15 @@ export default async function handler(request, response) {
 
   response.setHeader("Cache-Control", "no-store");
 
-  const token = process.env.GITHUB_TOKEN;
-  const owner = process.env.GITHUB_OWNER;
-  const repo = process.env.GITHUB_REPO;
-  const org = process.env.GITHUB_ORG || owner;
-
-  const mode = resolveMode({
-    queryMode: pickFirst(request.query?.mode),
-    envMode: process.env.GITHUB_ANALYTICS_MODE,
-  });
-
-  const allowMockFallback = parseBoolean(
-    pickFirst(request.query?.allow_mock_fallback),
-    true
-  );
-
-  if (mode === "mock") {
-    response.status(200).json(buildMockGithubAnalytics({ owner, repo, org }));
-    return;
-  }
-
-  if (!token || !owner || !repo) {
-    if (allowMockFallback) {
-      response.status(200).json(buildMockGithubAnalytics({ owner, repo, org }));
-      return;
-    }
-
-    response.status(503).json({
-      message: "Missing GitHub configuration",
-      requiredEnv: ["GITHUB_TOKEN", "GITHUB_OWNER", "GITHUB_REPO"],
-    });
-    return;
-  }
-
   try {
-    const payload = await buildLiveGithubAnalytics({ token, owner, repo, org });
+    const payload = await loadGithubAnalytics({ query: request.query });
     response.status(200).json(payload);
   } catch (error) {
-    if (allowMockFallback) {
-      response.status(200).json(buildMockGithubAnalytics({ owner, repo, org }));
-      return;
-    }
-
-    response.status(502).json({
-      message: "Failed to load GitHub analytics",
-      detail: error instanceof Error ? error.message : "Unknown error",
+    const requiredEnv = ["GITHUB_TOKEN", "GITHUB_OWNER", "GITHUB_REPO"];
+    const missingConfig = !process.env.GITHUB_TOKEN || !process.env.GITHUB_OWNER || !process.env.GITHUB_REPO;
+    response.status(missingConfig ? 503 : 502).json({
+      message: missingConfig ? "Missing GitHub configuration" : "Failed to load GitHub analytics",
+      ...(missingConfig ? { requiredEnv } : { detail: error instanceof Error ? error.message : "Unknown error" }),
     });
   }
 }

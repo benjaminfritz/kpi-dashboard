@@ -1,0 +1,19 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model DashboardSnapshot {
+  id              String   @id @default(cuid())
+  createdAt       DateTime @default(now())
+  lastUpdatedLabel String?
+  figma           Json?
+  contentful      Json
+  github          Json
+
+  @@index([createdAt(sort: Desc)])
+}
