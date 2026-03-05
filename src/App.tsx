@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { fetchContentfulConfigStatus, fetchDashboardData, fetchFigmaConfigStatus, fetchGithubConfigStatus } from './services/api';
-import { ContentfulConfigStatus, DashboardData, FigmaConfigStatus, GithubConfigStatus } from './types';
+import { fetchContentfulConfigStatus, fetchDashboardData, fetchDashboardTimeseries, fetchFigmaConfigStatus, fetchGithubConfigStatus } from './services/api';
+import { ContentfulConfigStatus, DashboardData, DashboardTimeseriesResponse, FigmaConfigStatus, GithubConfigStatus, TimeSpan } from './types';
 import { KpiCard } from './components/KpiCard';
 import { ProgressBar } from './components/ProgressBar';
-import { Github, Layout, Moon, Sun } from 'lucide-react';
+import { TrendLineChart } from './components/TrendLineChart';
+import { ChevronLeft, ChevronRight, Github, Layout, Moon, Sun } from 'lucide-react';
 
 type Pillar = 'design' | 'code' | 'content';
 const MONO_ICON_STROKE_WIDTH = 1;
@@ -68,14 +69,24 @@ const ContentfulMonochromeIcon: React.FC = () => {
   );
 };
 
+const formatRangeLabel = (startDay: string, endDay: string): string => {
+  const start = new Date(`${startDay}T00:00:00.000Z`);
+  const end = new Date(`${endDay}T00:00:00.000Z`);
+
+  return `${start.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} - ${end.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}`;
+};
+
 const App: React.FC = () => {
   const [data, setData] = useState<DashboardData | null>(null);
   const [figmaStatus, setFigmaStatus] = useState<FigmaConfigStatus | null>(null);
   const [githubStatus, setGithubStatus] = useState<GithubConfigStatus | null>(null);
   const [contentfulStatus, setContentfulStatus] = useState<ContentfulConfigStatus | null>(null);
+  const [timeseriesData, setTimeseriesData] = useState<DashboardTimeseriesResponse | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [activePillars, setActivePillars] = useState<Pillar[]>(['design', 'code', 'content']);
+  const [timeSpan] = useState<TimeSpan>('30d');
+  const [monthOffset, setMonthOffset] = useState<number>(0);
   const [darkMode, setDarkMode] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false;
     const savedTheme = window.localStorage.getItem('theme');
@@ -94,8 +105,12 @@ const App: React.FC = () => {
 
     const loadData = async () => {
       try {
-        const [result, figmaConfigStatus, githubConfigStatus, contentfulConfigStatus] = await Promise.all([
+        const [result, trendData, figmaConfigStatus, githubConfigStatus, contentfulConfigStatus] = await Promise.all([
           fetchDashboardData(),
+          fetchDashboardTimeseries(timeSpan, monthOffset).catch((timeseriesError) => {
+            console.warn("Unable to load dashboard timeseries", timeseriesError);
+            return null;
+          }),
           fetchFigmaConfigStatus().catch((configError) => {
             console.warn("Unable to load Figma config status", configError);
             return null;
@@ -111,6 +126,7 @@ const App: React.FC = () => {
         ]);
         if (isMounted) {
           setData(result);
+          setTimeseriesData(trendData);
           setFigmaStatus(figmaConfigStatus);
           setGithubStatus(githubConfigStatus);
           setContentfulStatus(contentfulConfigStatus);
@@ -133,7 +149,7 @@ const App: React.FC = () => {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [timeSpan, monthOffset]);
 
   const themeToggleButton = (
     <button
@@ -214,6 +230,15 @@ const App: React.FC = () => {
   const isFiltered = !areAllPillarsVisible && activePillars.length < pillarOrder.length;
   const isPillarActive = (pillar: Pillar) => areAllPillarsVisible || activePillars.includes(pillar);
   const sectionTitleClass = 'mb-spacing-8 text-xs font-bold uppercase tracking-wider text-neutral-60 dark:text-neutral-25';
+  const timeSpanLabelByKey: Record<TimeSpan, string> = {
+    '7d': 'Last 7 days',
+    '30d': 'Last 30 days',
+    '90d': 'Last quarter',
+    '365d': 'Last year',
+  };
+  const activeRangeLabel = timeseriesData?.meta?.window
+    ? formatRangeLabel(timeseriesData.meta.window.startDay, timeseriesData.meta.window.endDay)
+    : null;
 
   const figmaStatusLabel = figmaStatus?.ready
     ? 'Figma: Ready'
@@ -339,6 +364,49 @@ const App: React.FC = () => {
             </button>
           )}
         </div>
+
+        <section className="mb-spacing-32 overflow-hidden rounded-md border border-semantic-borderSubtle/70 bg-semantic-backgroundNeutral p-spacing-24 shadow-tokenShadow28 dark:border-neutral-50/70 dark:bg-neutral-85">
+          <div className="mb-spacing-16 flex items-start justify-between gap-spacing-16">
+            <div>
+              <h3 className="font-vodafone text-[1.125rem] font-light text-semantic-textNeutral dark:text-neutral-5">
+                Trend ({timeSpanLabelByKey[timeSpan]})
+              </h3>
+              <p className="mt-spacing-4 text-xs text-neutral-60 dark:text-neutral-25">
+                Adoption footprint over time, normalized to index 100 at each pillar&apos;s first available day.
+              </p>
+              {activeRangeLabel && (
+                <p className="mt-spacing-4 text-xs font-semibold uppercase tracking-wide text-neutral-60 dark:text-neutral-25">
+                  Window: {activeRangeLabel}
+                </p>
+              )}
+            </div>
+            <div className="flex items-center gap-spacing-8">
+              <button
+                type="button"
+                onClick={() => setMonthOffset((current) => current + 1)}
+                className="inline-flex items-center gap-spacing-4 px-spacing-4 py-spacing-4 text-xs font-semibold uppercase tracking-wide text-brand-vodafone transition hover:text-brand-red dark:text-brand-redTint dark:hover:text-brand-vodafoneTint"
+                aria-label="Show previous month window"
+              >
+                <ChevronLeft size={14} />
+                Prev month
+              </button>
+              <button
+                type="button"
+                onClick={() => setMonthOffset((current) => Math.max(0, current - 1))}
+                disabled={monthOffset === 0}
+                className="inline-flex items-center gap-spacing-4 px-spacing-4 py-spacing-4 text-xs font-semibold uppercase tracking-wide text-brand-vodafone transition hover:text-brand-red disabled:cursor-not-allowed disabled:text-neutral-50 disabled:opacity-60 dark:text-brand-redTint dark:hover:text-brand-vodafoneTint dark:disabled:text-neutral-50"
+                aria-label="Show next month window"
+              >
+                Next month
+                <ChevronRight size={14} />
+              </button>
+            </div>
+          </div>
+          <TrendLineChart
+            timeseries={timeseriesData}
+            activePillars={pillarOrder.filter((pillar) => isPillarActive(pillar))}
+          />
+        </section>
 
         {/* GRID LAYOUT */}
         <div className="grid grid-cols-1 items-start gap-spacing-32 md:grid-cols-2 lg:grid-cols-3">

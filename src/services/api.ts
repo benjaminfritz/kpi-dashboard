@@ -2,10 +2,12 @@ import {
   ContentfulConfigStatus,
   ContentfulData,
   DashboardData,
+  DashboardTimeseriesResponse,
   FigmaConfigStatus,
   FigmaData,
   GithubConfigStatus,
   GithubData,
+  TimeSpan,
 } from '../types';
 
 const fallbackDashboardData: Omit<DashboardData, 'lastUpdated' | 'figma'> = {
@@ -177,6 +179,53 @@ const fetchLiveGithubData = async (): Promise<GithubData> => {
   return payload;
 };
 
+const isDashboardDataPayload = (payload: unknown): payload is DashboardData => {
+  if (!payload || typeof payload !== 'object') return false;
+
+  const candidate = payload as DashboardData;
+
+  return (
+    (candidate.figma === null || isLiveFigmaPayload(candidate.figma)) &&
+    isLiveContentfulPayload(candidate.contentful) &&
+    isLiveGithubPayload(candidate.github) &&
+    typeof candidate.lastUpdated === 'string'
+  );
+};
+
+const persistDashboardSnapshot = async (data: DashboardData): Promise<void> => {
+  const response = await fetch('/api/dashboard-snapshots', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Dashboard snapshot persistence failed with status ${response.status}`);
+  }
+};
+
+const fetchLatestStoredDashboardData = async (): Promise<DashboardData | null> => {
+  const response = await fetch('/api/dashboard-snapshots-latest');
+  if (response.status === 404) return null;
+  if (!response.ok) {
+    throw new Error(`Dashboard snapshot load failed with status ${response.status}`);
+  }
+
+  const payload: unknown = await response.json();
+  if (!payload || typeof payload !== 'object') {
+    throw new Error("Dashboard snapshot payload has unexpected shape");
+  }
+
+  const candidate = payload as { data?: unknown };
+  if (!isDashboardDataPayload(candidate.data)) {
+    throw new Error("Dashboard snapshot payload has unexpected data shape");
+  }
+
+  return candidate.data;
+};
+
 export const fetchDashboardData = async (): Promise<DashboardData> => {
   const [figmaData, contentfulData, githubData] = await Promise.all([
     fetchLiveFigmaData().catch((error) => {
@@ -193,13 +242,77 @@ export const fetchDashboardData = async (): Promise<DashboardData> => {
     }),
   ]);
 
-  return {
+  const dashboardData: DashboardData = {
     ...fallbackDashboardData,
     figma: figmaData,
     contentful: contentfulData || fallbackDashboardData.contentful,
     github: githubData || fallbackDashboardData.github,
     lastUpdated: new Date().toLocaleTimeString(),
   };
+
+  const hasFreshLiveData = Boolean(figmaData || contentfulData || githubData);
+
+  if (hasFreshLiveData) {
+    persistDashboardSnapshot(dashboardData).catch((error) => {
+      console.warn("Unable to persist current dashboard snapshot", error);
+    });
+    return dashboardData;
+  }
+
+  const latestStoredDashboard = await fetchLatestStoredDashboardData().catch((error) => {
+    console.warn("Unable to load latest stored dashboard snapshot", error);
+    return null;
+  });
+
+  return latestStoredDashboard || dashboardData;
+};
+
+const isTimeSpan = (value: unknown): value is TimeSpan => (
+  value === '7d' || value === '30d' || value === '90d' || value === '365d'
+);
+
+const isTimeseriesValueArray = (values: unknown, expectedLength: number): values is Array<number | null> => (
+  Array.isArray(values) &&
+  values.length === expectedLength &&
+  values.every((value) => value === null || typeof value === 'number')
+);
+
+const isDashboardTimeseriesPayload = (payload: unknown): payload is DashboardTimeseriesResponse => {
+  if (!payload || typeof payload !== 'object') return false;
+
+  const candidate = payload as DashboardTimeseriesResponse;
+  if (!isTimeSpan(candidate.span)) return false;
+  if (!Array.isArray(candidate.days) || !candidate.days.every((day) => typeof day === 'string')) return false;
+  if (!candidate.series || typeof candidate.series !== 'object') return false;
+  if (!candidate.meta || typeof candidate.meta !== 'object') return false;
+  if (!candidate.meta.window || typeof candidate.meta.window !== 'object') return false;
+  if (
+    typeof candidate.meta.window.startDay !== 'string' ||
+    typeof candidate.meta.window.endDay !== 'string' ||
+    typeof candidate.meta.window.monthOffset !== 'number'
+  ) return false;
+
+  const expectedLength = candidate.days.length;
+  return (
+    isTimeseriesValueArray(candidate.series.design, expectedLength) &&
+    isTimeseriesValueArray(candidate.series.code, expectedLength) &&
+    isTimeseriesValueArray(candidate.series.content, expectedLength)
+  );
+};
+
+export const fetchDashboardTimeseries = async (span: TimeSpan = '7d', monthOffset = 0): Promise<DashboardTimeseriesResponse> => {
+  const safeMonthOffset = Number.isFinite(monthOffset) ? Math.max(0, Math.floor(monthOffset)) : 0;
+  const response = await fetch(`/api/dashboard-timeseries?span=${span}&month_offset=${safeMonthOffset}`);
+  if (!response.ok) {
+    throw new Error(`Dashboard timeseries request failed with status ${response.status}`);
+  }
+
+  const payload: unknown = await response.json();
+  if (!isDashboardTimeseriesPayload(payload)) {
+    throw new Error("Dashboard timeseries payload has unexpected shape");
+  }
+
+  return payload;
 };
 
 const isFigmaConfigPayload = (payload: unknown): payload is FigmaConfigStatus => {
