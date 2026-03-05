@@ -1,7 +1,6 @@
 const CONTENTFUL_API_BASE_URL = "https://api.contentful.com";
 const DEFAULT_ENVIRONMENT_ID = "master";
 const DEFAULT_LOOKBACK_DAYS = 7;
-const DEFAULT_ASSET_WINDOW_HOURS = 24;
 const DEFAULT_STALE_DRAFT_DAYS = 30;
 const DEFAULT_SCHEDULE_WINDOW_DAYS = 7;
 const MAX_TOP_CONTENT_TYPES = 5;
@@ -365,13 +364,6 @@ export default async function handler(request, response) {
     60
   );
 
-  const assetWindowHours = parsePositiveInteger(
-    pickFirst(request.query?.asset_window_hours),
-    DEFAULT_ASSET_WINDOW_HOURS,
-    1,
-    168
-  );
-
   const staleDraftDays = parsePositiveInteger(
     pickFirst(request.query?.stale_draft_days),
     DEFAULT_STALE_DRAFT_DAYS,
@@ -392,11 +384,6 @@ export default async function handler(request, response) {
   const previousPublishedSince = new Date(publishedSince);
   previousPublishedSince.setUTCDate(previousPublishedSince.getUTCDate() - lookbackDays);
 
-  const assetsSince = new Date(now);
-  assetsSince.setUTCHours(assetsSince.getUTCHours() - assetWindowHours);
-  const previousAssetsSince = new Date(assetsSince);
-  previousAssetsSince.setUTCHours(previousAssetsSince.getUTCHours() - assetWindowHours);
-
   const staleDraftCutoff = new Date(now);
   staleDraftCutoff.setUTCDate(staleDraftCutoff.getUTCDate() - staleDraftDays);
 
@@ -414,8 +401,7 @@ export default async function handler(request, response) {
       locales,
       weeklyPublishRate,
       previousWeeklyPublishRate,
-      recentAssetUploads,
-      previousRecentAssetUploads,
+      totalAssets,
       scheduledMetrics,
       contentTypeDistribution,
     ] = await Promise.all([
@@ -472,17 +458,6 @@ export default async function handler(request, response) {
         spaceId,
         environmentId,
         resourcePath: "/assets",
-        filters: { "sys.createdAt[gte]": assetsSince.toISOString() },
-      }),
-      fetchCount({
-        token,
-        spaceId,
-        environmentId,
-        resourcePath: "/assets",
-        filters: {
-          "sys.createdAt[gte]": previousAssetsSince.toISOString(),
-          "sys.createdAt[lt]": assetsSince.toISOString(),
-        },
       }),
       fetchScheduledEntries({
         token,
@@ -499,15 +474,13 @@ export default async function handler(request, response) {
     ]);
 
     const weeklyPublishRateDelta = weeklyPublishRate - previousWeeklyPublishRate;
-    const recentAssetUploadsDelta = recentAssetUploads - previousRecentAssetUploads;
 
     response.status(200).json({
       totalEntries,
       publishedEntries,
       draftEntries,
       staleDraftEntries,
-      recentAssetUploads,
-      recentAssetUploadsDelta,
+      totalAssets,
       locales,
       scheduledEntries: scheduledMetrics.total,
       scheduledEntriesNext7Days: scheduledMetrics.nextWindow,

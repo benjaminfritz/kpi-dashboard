@@ -43,8 +43,7 @@ export interface ContentfulData {
   publishedEntries: number;
   draftEntries: number;
   staleDraftEntries: number;
-  recentAssetUploads: number;
-  recentAssetUploadsDelta: number;
+  totalAssets: number;
   locales: number;
   scheduledEntries: number;
   scheduledEntriesNext7Days: number;

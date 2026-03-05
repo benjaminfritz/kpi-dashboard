@@ -204,9 +204,6 @@ const App: React.FC = () => {
   const weeklyPublishRateDeltaClassName = data.contentful.weeklyPublishRateDelta >= 0
     ? 'text-secondary-springGreen dark:text-secondary-springGreenTint'
     : 'text-brand-red dark:text-brand-redTint';
-  const recentAssetUploadsDeltaClassName = data.contentful.recentAssetUploadsDelta >= 0
-    ? 'text-secondary-springGreen dark:text-secondary-springGreenTint'
-    : 'text-brand-red dark:text-brand-redTint';
   const contentTypeDistributionUnavailable = data.contentful.contentTypeDistributionStatus === 'unavailable';
   const repoViewsDeltaClassName = data.github.repoViews14dDelta >= 0
     ? 'text-secondary-springGreen dark:text-secondary-springGreenTint'
@@ -693,11 +690,8 @@ const App: React.FC = () => {
                 </div>
               </div>
               <div className="rounded-sm border border-secondary-aquaBlue/30 bg-secondary-aquaBlue/10 p-spacing-12 dark:bg-secondary-aquaBlue/20">
-                <div className="text-xs uppercase tracking-wide text-secondary-aquaBlue dark:text-neutral-5">Assets (24h)</div>
-                <div className="mt-spacing-4 text-xl font-light text-secondary-turquoise dark:text-secondary-aquaBlue">{data.contentful.recentAssetUploads.toLocaleString()}</div>
-                <div className={`mt-spacing-4 text-[10px] font-semibold uppercase tracking-wide ${recentAssetUploadsDeltaClassName}`}>
-                  vs prev 24h {formatDelta(data.contentful.recentAssetUploadsDelta)}
-                </div>
+                <div className="text-xs uppercase tracking-wide text-secondary-aquaBlue dark:text-neutral-5">Assets (Total)</div>
+                <div className="mt-spacing-4 text-xl font-light text-secondary-turquoise dark:text-secondary-aquaBlue">{data.contentful.totalAssets.toLocaleString()}</div>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-spacing-12">
@@ -708,16 +702,6 @@ const App: React.FC = () => {
               <div className="rounded-sm border border-secondary-aquaBlue/30 bg-secondary-aquaBlue/10 p-spacing-12 dark:bg-secondary-aquaBlue/20">
                 <div className="text-[10px] uppercase tracking-wide text-secondary-aquaBlue dark:text-neutral-5">Scheduled (Next 7d)</div>
                 <div className="mt-spacing-4 text-lg font-light text-secondary-turquoise dark:text-secondary-aquaBlue">{data.contentful.scheduledEntriesNext7Days}</div>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-spacing-12">
-              <div className="rounded-sm border border-semantic-borderSubtle bg-neutral-5 p-spacing-12 dark:border-neutral-50/70 dark:bg-neutral-95">
-                <div className="text-[10px] uppercase tracking-wide text-neutral-60 dark:text-neutral-25">Locales</div>
-                <div className="mt-spacing-4 text-lg font-light text-semantic-textNeutral dark:text-neutral-5">{data.contentful.locales}</div>
-              </div>
-              <div className="rounded-sm border border-semantic-borderSubtle bg-neutral-5 p-spacing-12 dark:border-neutral-50/70 dark:bg-neutral-95">
-                <div className="text-[10px] uppercase tracking-wide text-neutral-60 dark:text-neutral-25">Scheduled (Total)</div>
-                <div className="mt-spacing-4 text-lg font-light text-semantic-textNeutral dark:text-neutral-5">{data.contentful.scheduledEntries}</div>
               </div>
             </div>
             <div className="my-spacing-16 h-px bg-semantic-borderSubtle/50 dark:bg-neutral-50/50"></div>

@@ -14,8 +14,7 @@ const fallbackDashboardData: Omit<DashboardData, 'lastUpdated' | 'figma'> = {
     publishedEntries: 1100,
     draftEntries: 150,
     staleDraftEntries: 42,
-    recentAssetUploads: 5,
-    recentAssetUploadsDelta: 2,
+    totalAssets: 510,
     locales: 6,
     scheduledEntries: 48,
     scheduledEntriesNext7Days: 12,
@@ -109,8 +108,7 @@ const isLiveContentfulPayload = (payload: unknown): payload is ContentfulData =>
     typeof candidate.publishedEntries === 'number' &&
     typeof candidate.draftEntries === 'number' &&
     typeof candidate.staleDraftEntries === 'number' &&
-    typeof candidate.recentAssetUploads === 'number' &&
-    typeof candidate.recentAssetUploadsDelta === 'number' &&
+    typeof candidate.totalAssets === 'number' &&
     typeof candidate.locales === 'number' &&
     typeof candidate.scheduledEntries === 'number' &&
     typeof candidate.scheduledEntriesNext7Days === 'number' &&
