@@ -4,9 +4,10 @@ import { ContentfulConfigStatus, DashboardData, DashboardTimeseriesResponse, Fig
 import { KpiCard } from './components/KpiCard';
 import { ProgressBar } from './components/ProgressBar';
 import { TrendLineChart } from './components/TrendLineChart';
-import { ChevronLeft, ChevronRight, Github, Layout, Moon, Sun } from 'lucide-react';
+import { Github, Layout, Moon, Sun } from 'lucide-react';
 
 type Pillar = 'design' | 'code' | 'content';
+type TrendDisplayMode = 'normalized' | 'raw';
 const MONO_ICON_STROKE_WIDTH = 1;
 
 const FigmaMonochromeIcon: React.FC = () => (
@@ -85,8 +86,8 @@ const App: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [activePillars, setActivePillars] = useState<Pillar[]>(['design', 'code', 'content']);
-  const [timeSpan] = useState<TimeSpan>('30d');
-  const [monthOffset, setMonthOffset] = useState<number>(0);
+  const [timeSpan, setTimeSpan] = useState<TimeSpan>('30d');
+  const [trendDisplayMode, setTrendDisplayMode] = useState<TrendDisplayMode>('normalized');
   const [darkMode, setDarkMode] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false;
     const savedTheme = window.localStorage.getItem('theme');
@@ -103,33 +104,11 @@ const App: React.FC = () => {
   useEffect(() => {
     let isMounted = true;
 
-    const loadData = async () => {
+    const loadDashboardData = async () => {
       try {
-        const [result, trendData, figmaConfigStatus, githubConfigStatus, contentfulConfigStatus] = await Promise.all([
-          fetchDashboardData(),
-          fetchDashboardTimeseries(timeSpan, monthOffset).catch((timeseriesError) => {
-            console.warn("Unable to load dashboard timeseries", timeseriesError);
-            return null;
-          }),
-          fetchFigmaConfigStatus().catch((configError) => {
-            console.warn("Unable to load Figma config status", configError);
-            return null;
-          }),
-          fetchGithubConfigStatus().catch((configError) => {
-            console.warn("Unable to load GitHub config status", configError);
-            return null;
-          }),
-          fetchContentfulConfigStatus().catch((configError) => {
-            console.warn("Unable to load Contentful config status", configError);
-            return null;
-          }),
-        ]);
+        const result = await fetchDashboardData();
         if (isMounted) {
           setData(result);
-          setTimeseriesData(trendData);
-          setFigmaStatus(figmaConfigStatus);
-          setGithubStatus(githubConfigStatus);
-          setContentfulStatus(contentfulConfigStatus);
           setError(null);
         }
       } catch (error) {
@@ -144,12 +123,57 @@ const App: React.FC = () => {
       }
     };
 
-    loadData();
+    const loadConfigStatuses = async () => {
+      const [figmaConfigStatus, githubConfigStatus, contentfulConfigStatus] = await Promise.all([
+        fetchFigmaConfigStatus().catch((configError) => {
+          console.warn("Unable to load Figma config status", configError);
+          return null;
+        }),
+        fetchGithubConfigStatus().catch((configError) => {
+          console.warn("Unable to load GitHub config status", configError);
+          return null;
+        }),
+        fetchContentfulConfigStatus().catch((configError) => {
+          console.warn("Unable to load Contentful config status", configError);
+          return null;
+        }),
+      ]);
+
+      if (isMounted) {
+        setFigmaStatus(figmaConfigStatus);
+        setGithubStatus(githubConfigStatus);
+        setContentfulStatus(contentfulConfigStatus);
+      }
+    };
+
+    loadDashboardData();
+    loadConfigStatuses();
 
     return () => {
       isMounted = false;
     };
-  }, [timeSpan, monthOffset]);
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    fetchDashboardTimeseries(timeSpan)
+      .then((trendData) => {
+        if (isMounted) {
+          setTimeseriesData(trendData);
+        }
+      })
+      .catch((timeseriesError) => {
+        console.warn("Unable to load dashboard timeseries", timeseriesError);
+        if (isMounted) {
+          setTimeseriesData(null);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [timeSpan]);
 
   const themeToggleButton = (
     <button
@@ -163,16 +187,36 @@ const App: React.FC = () => {
   );
 
   if (loading) return (
-    <div className="flex h-screen w-full items-center justify-center bg-semantic-backgroundSubtle dark:bg-neutral-95">
+    <div className="min-h-screen bg-semantic-backgroundSubtle p-spacing-24 text-semantic-textNeutral dark:bg-neutral-95 dark:text-neutral-5 md:p-spacing-40">
       {themeToggleButton}
-      <div className="animate-pulse flex flex-col items-center gap-spacing-16 rounded-md border border-semantic-borderSubtle bg-semantic-backgroundNeutral p-spacing-24 shadow-tokenShadow28 dark:border-neutral-50/70 dark:bg-neutral-85">
-        <img
-          src="https://www.vodafone.de/media/img/icons/mid-render/New_VF_Icon_RGB_RED.svg"
-          alt=""
-          aria-hidden="true"
-          className="h-spacing-40 w-spacing-40 object-contain"
-        />
-        <div className="font-vodafone text-body-md text-neutral-60 dark:text-neutral-25">Loading brix/react Dashboard...</div>
+      <div className="mx-auto max-w-7xl">
+        <header className="mb-spacing-40 flex flex-col gap-spacing-16 md:flex-row md:items-end md:justify-between">
+          <div>
+            <div className="mb-spacing-4 flex items-center gap-spacing-8 text-brand-vodafone">
+              <Layout size={20} />
+              <span className="font-vodafone text-xs font-light uppercase tracking-wider">brix/react Dashboard</span>
+            </div>
+            <h1 className="font-vodafone text-heading-md font-light tracking-tight">Design System Metrics</h1>
+            <p className="mt-spacing-8 text-body-md text-neutral-60 dark:text-neutral-25">Real-time Metrics from Figma, Github and Contentful.</p>
+          </div>
+          <div className="space-y-spacing-8 animate-pulse">
+            <div className="h-spacing-24 w-spacing-220 rounded-tokenFull bg-neutral-25 dark:bg-neutral-50/40" />
+            <div className="h-spacing-24 w-spacing-220 rounded-tokenFull bg-neutral-25 dark:bg-neutral-50/40" />
+          </div>
+        </header>
+
+        <div className="mb-spacing-32 h-spacing-40 w-spacing-420 animate-pulse rounded-tokenFull bg-neutral-25 dark:bg-neutral-50/40" />
+
+        <section className="mb-spacing-32 animate-pulse rounded-md border border-semantic-borderSubtle/70 bg-semantic-backgroundNeutral p-spacing-24 shadow-tokenShadow28 dark:border-neutral-50/70 dark:bg-neutral-85">
+          <div className="mb-spacing-16 h-spacing-24 w-spacing-220 rounded-sm bg-neutral-25 dark:bg-neutral-50/40" />
+          <div className="h-[260px] w-full rounded-sm bg-neutral-25 dark:bg-neutral-50/40" />
+        </section>
+
+        <div className="grid grid-cols-1 items-start gap-spacing-32 md:grid-cols-2 lg:grid-cols-3 animate-pulse">
+          <div className="h-[540px] rounded-md border border-semantic-borderSubtle/70 bg-semantic-backgroundNeutral dark:border-neutral-50/70 dark:bg-neutral-85" />
+          <div className="h-[540px] rounded-md border border-semantic-borderSubtle/70 bg-semantic-backgroundNeutral dark:border-neutral-50/70 dark:bg-neutral-85" />
+          <div className="h-[540px] rounded-md border border-semantic-borderSubtle/70 bg-semantic-backgroundNeutral dark:border-neutral-50/70 dark:bg-neutral-85" />
+        </div>
       </div>
     </div>
   );
@@ -230,6 +274,7 @@ const App: React.FC = () => {
   const isFiltered = !areAllPillarsVisible && activePillars.length < pillarOrder.length;
   const isPillarActive = (pillar: Pillar) => areAllPillarsVisible || activePillars.includes(pillar);
   const sectionTitleClass = 'mb-spacing-8 text-xs font-bold uppercase tracking-wider text-neutral-60 dark:text-neutral-25';
+  const timeSpanOptions: TimeSpan[] = ['7d', '30d', '90d', '365d'];
   const timeSpanLabelByKey: Record<TimeSpan, string> = {
     '7d': 'Last 7 days',
     '30d': 'Last 30 days',
@@ -366,13 +411,15 @@ const App: React.FC = () => {
         </div>
 
         <section className="mb-spacing-32 overflow-hidden rounded-md border border-semantic-borderSubtle/70 bg-semantic-backgroundNeutral p-spacing-24 shadow-tokenShadow28 dark:border-neutral-50/70 dark:bg-neutral-85">
-          <div className="mb-spacing-16 flex items-start justify-between gap-spacing-16">
+          <div className="mb-spacing-16 flex flex-col gap-spacing-12 sm:flex-row sm:items-start sm:justify-between sm:gap-spacing-16">
             <div>
               <h3 className="font-vodafone text-[1.125rem] font-light text-semantic-textNeutral dark:text-neutral-5">
-                Trend ({timeSpanLabelByKey[timeSpan]})
+                Adoption Footprint Trend ({timeSpanLabelByKey[timeSpan]})
               </h3>
               <p className="mt-spacing-4 text-xs text-neutral-60 dark:text-neutral-25">
-                Adoption footprint over time, normalized to index 100 at each pillar&apos;s first available day.
+                {trendDisplayMode === 'normalized'
+                  ? 'Over time, normalized to index 100 at each pillar\'s first available day.'
+                  : 'Over time using raw metric values.'}
               </p>
               {activeRangeLabel && (
                 <p className="mt-spacing-4 text-xs font-semibold uppercase tracking-wide text-neutral-60 dark:text-neutral-25">
@@ -380,31 +427,59 @@ const App: React.FC = () => {
                 </p>
               )}
             </div>
-            <div className="flex items-center gap-spacing-8">
-              <button
-                type="button"
-                onClick={() => setMonthOffset((current) => current + 1)}
-                className="inline-flex items-center gap-spacing-4 px-spacing-4 py-spacing-4 text-xs font-semibold uppercase tracking-wide text-brand-vodafone transition hover:text-brand-red dark:text-brand-redTint dark:hover:text-brand-vodafoneTint"
-                aria-label="Show previous month window"
-              >
-                <ChevronLeft size={14} />
-                Prev month
-              </button>
-              <button
-                type="button"
-                onClick={() => setMonthOffset((current) => Math.max(0, current - 1))}
-                disabled={monthOffset === 0}
-                className="inline-flex items-center gap-spacing-4 px-spacing-4 py-spacing-4 text-xs font-semibold uppercase tracking-wide text-brand-vodafone transition hover:text-brand-red disabled:cursor-not-allowed disabled:text-neutral-50 disabled:opacity-60 dark:text-brand-redTint dark:hover:text-brand-vodafoneTint dark:disabled:text-neutral-50"
-                aria-label="Show next month window"
-              >
-                Next month
-                <ChevronRight size={14} />
-              </button>
+            <div className="flex flex-wrap items-center gap-spacing-8 sm:justify-end">
+              <div className="inline-flex items-center rounded-tokenFull border border-semantic-borderSubtle bg-semantic-backgroundNeutral p-spacing-4 dark:border-neutral-50/70 dark:bg-neutral-95">
+                {timeSpanOptions.map((option) => (
+                  <button
+                    key={option}
+                    type="button"
+                    onClick={() => {
+                      setTimeSpan(option);
+                    }}
+                    className={`rounded-tokenFull px-spacing-12 py-spacing-6 text-xs font-semibold uppercase tracking-wide transition ${
+                      option === timeSpan
+                        ? 'bg-brand-vodafone text-neutral-white dark:bg-brand-redTint dark:text-neutral-95'
+                        : 'text-neutral-60 hover:bg-neutral-5 dark:text-neutral-25 dark:hover:bg-neutral-85'
+                    }`}
+                    aria-label={`Show ${timeSpanLabelByKey[option]} trend`}
+                  >
+                    {option.toUpperCase()}
+                  </button>
+                ))}
+              </div>
+              <div className="inline-flex items-center rounded-tokenFull border border-semantic-borderSubtle bg-semantic-backgroundNeutral p-spacing-4 dark:border-neutral-50/70 dark:bg-neutral-95">
+                <button
+                  type="button"
+                  onClick={() => setTrendDisplayMode('normalized')}
+                  className={`rounded-tokenFull px-spacing-12 py-spacing-6 text-xs font-semibold uppercase tracking-wide transition ${
+                    trendDisplayMode === 'normalized'
+                      ? 'bg-neutral-95 text-neutral-white dark:bg-neutral-25 dark:text-neutral-95'
+                      : 'text-neutral-60 hover:bg-neutral-5 dark:text-neutral-25 dark:hover:bg-neutral-85'
+                  }`}
+                  aria-label="Show normalized index trend"
+                >
+                  Indexed
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTrendDisplayMode('raw')}
+                  className={`rounded-tokenFull px-spacing-12 py-spacing-6 text-xs font-semibold uppercase tracking-wide transition ${
+                    trendDisplayMode === 'raw'
+                      ? 'bg-neutral-95 text-neutral-white dark:bg-neutral-25 dark:text-neutral-95'
+                      : 'text-neutral-60 hover:bg-neutral-5 dark:text-neutral-25 dark:hover:bg-neutral-85'
+                  }`}
+                  aria-label="Show raw value trend"
+                >
+                  Raw
+                </button>
+              </div>
             </div>
           </div>
           <TrendLineChart
             timeseries={timeseriesData}
             activePillars={pillarOrder.filter((pillar) => isPillarActive(pillar))}
+            darkMode={darkMode}
+            displayMode={trendDisplayMode}
           />
         </section>
 
