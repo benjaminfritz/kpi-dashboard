@@ -87,7 +87,7 @@ const App: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [activePillars, setActivePillars] = useState<Pillar[]>(['design', 'code', 'content']);
   const [timeSpan, setTimeSpan] = useState<TimeSpan>('30d');
-  const [trendDisplayMode, setTrendDisplayMode] = useState<TrendDisplayMode>('normalized');
+  const [trendDisplayMode, setTrendDisplayMode] = useState<TrendDisplayMode>('raw');
   const [darkMode, setDarkMode] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false;
     const savedTheme = window.localStorage.getItem('theme');
@@ -197,7 +197,7 @@ const App: React.FC = () => {
               <span className="font-vodafone text-xs font-light uppercase tracking-wider">brix/react Dashboard</span>
             </div>
             <h1 className="font-vodafone text-heading-md font-light tracking-tight">Design System Metrics</h1>
-            <p className="mt-spacing-8 text-body-md text-neutral-60 dark:text-neutral-25">Real-time Metrics from Figma, Github and Contentful.</p>
+            <p className="mt-spacing-8 text-body-md text-neutral-60 dark:text-neutral-25">Data collected in real time from Figma, Github and Contentful.</p>
           </div>
           <div className="space-y-spacing-8 animate-pulse">
             <div className="h-spacing-24 w-spacing-220 rounded-tokenFull bg-neutral-25 dark:bg-neutral-50/40" />
@@ -344,7 +344,7 @@ const App: React.FC = () => {
               <span className="font-vodafone text-xs font-light uppercase tracking-wider">brix/react Dashboard</span>
             </div>
             <h1 className="font-vodafone text-heading-md font-light tracking-tight">Design System Metrics</h1>
-            <p className="mt-spacing-8 text-body-md text-neutral-60 dark:text-neutral-25">Real-time Metrics from Figma, Github and Contentful.</p>
+            <p className="mt-spacing-8 text-body-md text-neutral-60 dark:text-neutral-25">Data collected in real time from Figma, Github and Contentful.</p>
           </div>
           <div className="flex flex-col items-start gap-spacing-8 md:items-end">
             <div className="flex flex-wrap items-center gap-spacing-8 md:justify-end">
@@ -359,7 +359,7 @@ const App: React.FC = () => {
               </div>
             </div>
             <div className="rounded-sm border border-semantic-borderSubtle bg-semantic-backgroundNeutral px-spacing-12 py-spacing-8 text-xs font-mono text-neutral-60 dark:border-neutral-50/70 dark:bg-neutral-85 dark:text-neutral-25">
-              Last update: {data.lastUpdated}
+              Last Update: {data.lastUpdated}
             </div>
           </div>
         </header>
@@ -375,7 +375,7 @@ const App: React.FC = () => {
                 : 'border-semantic-borderSubtle bg-semantic-backgroundNeutral text-neutral-60 dark:border-neutral-50/70 dark:bg-neutral-85 dark:text-neutral-25'
             }`}
           >
-            Design
+            DESIGN
           </button>
           <button
             type="button"
@@ -386,7 +386,7 @@ const App: React.FC = () => {
                 : 'border-semantic-borderSubtle bg-semantic-backgroundNeutral text-neutral-60 dark:border-neutral-50/70 dark:bg-neutral-85 dark:text-neutral-25'
             }`}
           >
-            Code
+            CODE
           </button>
           <button
             type="button"
@@ -397,7 +397,7 @@ const App: React.FC = () => {
                 : 'border-semantic-borderSubtle bg-semantic-backgroundNeutral text-neutral-60 dark:border-neutral-50/70 dark:bg-neutral-85 dark:text-neutral-25'
             }`}
           >
-            Content
+            CONTENT
           </button>
           {isFiltered && (
             <button
@@ -414,7 +414,7 @@ const App: React.FC = () => {
           <div className="mb-spacing-16 flex flex-col gap-spacing-12 sm:flex-row sm:items-start sm:justify-between sm:gap-spacing-16">
             <div>
               <h3 className="font-vodafone text-[1.125rem] font-light text-semantic-textNeutral dark:text-neutral-5">
-                Adoption Footprint Trend ({timeSpanLabelByKey[timeSpan]})
+                Adoption Rate ({timeSpanLabelByKey[timeSpan]})
               </h3>
               <p className="mt-spacing-4 text-xs text-neutral-60 dark:text-neutral-25">
                 {trendDisplayMode === 'normalized'
@@ -423,56 +423,38 @@ const App: React.FC = () => {
               </p>
               {activeRangeLabel && (
                 <p className="mt-spacing-4 text-xs font-semibold uppercase tracking-wide text-neutral-60 dark:text-neutral-25">
-                  Window: {activeRangeLabel}
+                  Time Window: {activeRangeLabel}
                 </p>
               )}
             </div>
-            <div className="flex flex-wrap items-center gap-spacing-8 sm:justify-end">
-              <div className="inline-flex items-center rounded-tokenFull border border-semantic-borderSubtle bg-semantic-backgroundNeutral p-spacing-4 dark:border-neutral-50/70 dark:bg-neutral-95">
-                {timeSpanOptions.map((option) => (
-                  <button
-                    key={option}
-                    type="button"
-                    onClick={() => {
-                      setTimeSpan(option);
-                    }}
-                    className={`rounded-tokenFull px-spacing-12 py-spacing-6 text-xs font-semibold uppercase tracking-wide transition ${
-                      option === timeSpan
-                        ? 'bg-brand-vodafone text-neutral-white dark:bg-brand-redTint dark:text-neutral-95'
-                        : 'text-neutral-60 hover:bg-neutral-5 dark:text-neutral-25 dark:hover:bg-neutral-85'
-                    }`}
-                    aria-label={`Show ${timeSpanLabelByKey[option]} trend`}
-                  >
-                    {option.toUpperCase()}
-                  </button>
-                ))}
-              </div>
-              <div className="inline-flex items-center rounded-tokenFull border border-semantic-borderSubtle bg-semantic-backgroundNeutral p-spacing-4 dark:border-neutral-50/70 dark:bg-neutral-95">
-                <button
-                  type="button"
-                  onClick={() => setTrendDisplayMode('normalized')}
-                  className={`rounded-tokenFull px-spacing-12 py-spacing-6 text-xs font-semibold uppercase tracking-wide transition ${
-                    trendDisplayMode === 'normalized'
-                      ? 'bg-neutral-95 text-neutral-white dark:bg-neutral-25 dark:text-neutral-95'
-                      : 'text-neutral-60 hover:bg-neutral-5 dark:text-neutral-25 dark:hover:bg-neutral-85'
-                  }`}
-                  aria-label="Show normalized index trend"
+            <div className="flex flex-wrap items-center gap-spacing-12 rounded-sm border border-semantic-borderSubtle bg-neutral-5/80 p-spacing-12 dark:border-neutral-50/70 dark:bg-neutral-95/80 sm:justify-end">
+              <label className="flex items-center gap-spacing-8 text-sm font-semibold text-semantic-textNeutral dark:text-neutral-5">
+                <span>Date Range</span>
+                <select
+                  value={timeSpan}
+                  onChange={(event) => setTimeSpan(event.target.value as TimeSpan)}
+                  className="rounded-sm border border-semantic-borderSubtle bg-semantic-backgroundNeutral px-spacing-8 py-spacing-4 text-sm text-semantic-textNeutral [color-scheme:light] dark:border-neutral-50/70 dark:bg-neutral-85 dark:text-neutral-5 dark:[color-scheme:dark]"
+                  aria-label="Select trend time span"
                 >
-                  Indexed
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setTrendDisplayMode('raw')}
-                  className={`rounded-tokenFull px-spacing-12 py-spacing-6 text-xs font-semibold uppercase tracking-wide transition ${
-                    trendDisplayMode === 'raw'
-                      ? 'bg-neutral-95 text-neutral-white dark:bg-neutral-25 dark:text-neutral-95'
-                      : 'text-neutral-60 hover:bg-neutral-5 dark:text-neutral-25 dark:hover:bg-neutral-85'
-                  }`}
-                  aria-label="Show raw value trend"
+                  {timeSpanOptions.map((option) => (
+                    <option key={option} value={option}>
+                      {timeSpanLabelByKey[option]}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="flex items-center gap-spacing-8 text-sm font-semibold text-semantic-textNeutral dark:text-neutral-5">
+                <span>Metric Scale</span>
+                <select
+                  value={trendDisplayMode}
+                  onChange={(event) => setTrendDisplayMode(event.target.value as TrendDisplayMode)}
+                  className="rounded-sm border border-semantic-borderSubtle bg-semantic-backgroundNeutral px-spacing-8 py-spacing-4 text-sm text-semantic-textNeutral [color-scheme:light] dark:border-neutral-50/70 dark:bg-neutral-85 dark:text-neutral-5 dark:[color-scheme:dark]"
+                  aria-label="Select trend display mode"
                 >
-                  Raw
-                </button>
-              </div>
+                  <option value="raw">Raw</option>
+                  <option value="normalized">Normalized</option>
+                </select>
+              </label>
             </div>
           </div>
           <TrendLineChart
@@ -489,7 +471,7 @@ const App: React.FC = () => {
           {/* 1. FIGMA */}
           {isPillarActive('design') && (
           <KpiCard
-            title="Design"
+            title="DESIGN"
             icon={<FigmaMonochromeIcon />}
             hideOutline
             accentClassName="bg-brand-vodafone dark:bg-brand-redTint"
@@ -630,7 +612,7 @@ const App: React.FC = () => {
           {/* 2. GITHUB / REACT COMPONENTS */}
           {isPillarActive('code') && (
           <KpiCard
-            title="Code"
+            title="CODE"
             icon={<GitHubMonochromeIcon />}
             hideOutline
             accentClassName="bg-brand-vodafone dark:bg-brand-redTint"
@@ -763,7 +745,7 @@ const App: React.FC = () => {
           {/* 3. CONTENTFUL */}
           {isPillarActive('content') && (
           <KpiCard
-            title="Content"
+            title="CONTENT"
             icon={<ContentfulMonochromeIcon />}
             hideOutline
             accentClassName="bg-brand-vodafone dark:bg-brand-redTint"

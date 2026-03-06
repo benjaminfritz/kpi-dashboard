@@ -1,0 +1,202 @@
+- generic [ref=e3]:
+  - button "Toggle dark mode" [ref=e4] [cursor=pointer]:
+    - img [ref=e5]
+  - generic [ref=e7]:
+    - banner [ref=e8]:
+      - generic [ref=e9]:
+        - generic [ref=e10]:
+          - img [ref=e11]
+          - generic [ref=e13]: brix/react Dashboard
+        - heading "Design System Metrics" [level=1] [ref=e14]
+        - paragraph [ref=e15]: Real-time Metrics from Figma, Github and Contentful.
+      - generic [ref=e16]:
+        - generic [ref=e17]:
+          - generic [ref=e18]: "Figma: Status Unknown"
+          - generic [ref=e19]: "GitHub: Status Unknown"
+          - generic [ref=e20]: "Contentful: Status Unknown"
+        - generic [ref=e21]: "Last update: 15:50:29"
+    - generic [ref=e22]:
+      - generic [ref=e23]: Filter View by
+      - button "Design" [ref=e24] [cursor=pointer]
+      - button "Code" [ref=e25] [cursor=pointer]
+      - button "Content" [ref=e26] [cursor=pointer]
+    - generic [ref=e27]:
+      - generic [ref=e28]:
+        - generic [ref=e29]:
+          - heading "Adoption Footprint Trend (Last 30 days)" [level=3] [ref=e30]
+          - paragraph [ref=e31]: Over time using raw metric values.
+        - generic [ref=e32]:
+          - generic [ref=e33]:
+            - generic [ref=e34]: Time span
+            - combobox "Select trend time span" [ref=e35]:
+              - option "Last 7 days"
+              - option "Last 30 days" [selected]
+              - option "Last quarter"
+              - option "Last year"
+          - generic [ref=e36]:
+            - generic [ref=e37]: Metric scale
+            - combobox "Select trend display mode" [ref=e38]:
+              - option "Indexed"
+              - option "Raw" [selected]
+      - generic [ref=e39]: No historical trend data available yet.
+    - generic [ref=e40]:
+      - generic [ref=e41]:
+        - generic [ref=e43]:
+          - heading "Design" [level=3] [ref=e44]
+          - img [ref=e46]
+        - generic [ref=e53]:
+          - paragraph [ref=e54]: No live Figma analytics available.
+          - paragraph [ref=e55]: "Set `FIGMA_ACCESS_TOKEN` and `FIGMA_LIBRARY_FILE_KEY`, then verify `/api/figma-config-check`."
+      - generic [ref=e56]:
+        - generic [ref=e58]:
+          - heading "Code" [level=3] [ref=e59]
+          - img [ref=e61]
+        - generic [ref=e64]:
+          - heading "External Adoption" [level=4] [ref=e65]
+          - generic [ref=e66]: "Source: Mock Data"
+          - generic [ref=e67]:
+            - generic [ref=e68]:
+              - generic [ref=e69]: "42"
+              - generic [ref=e70]: Consuming Repos (30d)
+            - generic [ref=e71]:
+              - generic [ref=e72]: "8"
+              - generic [ref=e73]: New Consuming Repos (30d)
+            - generic [ref=e74]:
+              - generic [ref=e75]: vodafone
+              - generic [ref=e76]: Organization Scope
+          - heading "Repo Traffic (14d)" [level=4] [ref=e78]
+          - generic [ref=e79]:
+            - generic [ref=e80]:
+              - generic [ref=e81]: Views (14d)
+              - generic [ref=e82]: "1.896"
+              - generic [ref=e83]: vs prev 14d +312
+            - generic [ref=e84]:
+              - generic [ref=e85]: Clones (14d)
+              - generic [ref=e86]: "138"
+              - generic [ref=e87]: Unique cloners 64
+          - generic [ref=e88]:
+            - generic [ref=e89]: Unique Visitors (14d)
+            - generic [ref=e90]: "267"
+          - heading "Issue & PR Health" [level=4] [ref=e91]
+          - generic [ref=e92]:
+            - generic [ref=e93]:
+              - generic [ref=e94]: Open Bugs
+              - generic [ref=e95]: "29"
+            - generic [ref=e96]:
+              - generic [ref=e97]: Critical Bugs
+              - generic [ref=e98]: "4"
+            - generic [ref=e99]:
+              - generic [ref=e100]: Median Bug Age
+              - generic [ref=e101]: 11d
+          - generic [ref=e102]:
+            - generic [ref=e103]:
+              - generic [ref=e104]: Bugs Opened vs Closed (7d)
+              - generic [ref=e105]: 9 / 7
+            - generic [ref=e106]:
+              - generic [ref=e107]: Open PRs / Older than 7d
+              - generic [ref=e108]: 3 / 1
+          - generic [ref=e109]:
+            - generic [ref=e110]:
+              - generic [ref=e111]: Merged PRs (7d)
+              - generic [ref=e112]: "12"
+            - generic [ref=e113]:
+              - generic [ref=e114]: First Review (Median)
+              - generic [ref=e115]: 6h
+            - generic [ref=e116]:
+              - generic [ref=e117]: Time to Merge (Median)
+              - generic [ref=e118]: 38h
+          - heading "Top Consuming Repositories" [level=4] [ref=e120]
+          - list [ref=e121]:
+            - listitem [ref=e122]:
+              - generic [ref=e124]:
+                - generic [ref=e125]: web-checkout
+                - generic [ref=e126]: "612"
+            - listitem [ref=e129]:
+              - generic [ref=e131]:
+                - generic [ref=e132]: myvodafone-app
+                - generic [ref=e133]: "477"
+            - listitem [ref=e136]:
+              - generic [ref=e138]:
+                - generic [ref=e139]: shop-shell
+                - generic [ref=e140]: "329"
+            - listitem [ref=e143]:
+              - generic [ref=e145]:
+                - generic [ref=e146]: care-portal
+                - generic [ref=e147]: "210"
+          - heading "Top Imported Components" [level=4] [ref=e150]
+          - list [ref=e151]:
+            - listitem [ref=e152]:
+              - generic [ref=e154]:
+                - generic [ref=e155]: <Button />
+                - generic [ref=e156]: "1240"
+            - listitem [ref=e159]:
+              - generic [ref=e161]:
+                - generic [ref=e162]: <Card />
+                - generic [ref=e163]: "840"
+            - listitem [ref=e166]:
+              - generic [ref=e168]:
+                - generic [ref=e169]: <Input />
+                - generic [ref=e170]: "670"
+            - listitem [ref=e173]:
+              - generic [ref=e175]:
+                - generic [ref=e176]: <Modal />
+                - generic [ref=e177]: "381"
+      - generic [ref=e180]:
+        - generic [ref=e182]:
+          - heading "Content" [level=3] [ref=e183]
+          - img [ref=e185]
+        - generic [ref=e187]:
+          - heading "Content Footprint" [level=4] [ref=e188]
+          - generic [ref=e189]:
+            - generic [ref=e190]:
+              - generic [ref=e191]: "1.250"
+              - generic [ref=e192]: Total Content Entries
+            - generic [ref=e193]:
+              - generic [ref=e194]: "1.100"
+              - generic [ref=e195]: Published Entries
+            - generic [ref=e196]:
+              - generic [ref=e197]: "150"
+              - generic [ref=e198]: Draft Entries
+          - heading "Publishing Health" [level=4] [ref=e200]
+          - generic [ref=e201]:
+            - generic [ref=e202]:
+              - generic [ref=e203]: Published vs Draft
+              - generic [ref=e204]: 88% Published
+            - generic [ref=e209]:
+              - generic [ref=e210]: "Published: 1.100 (88%)"
+              - generic [ref=e211]: "Drafts: 150 (12%)"
+          - heading "Activity" [level=4] [ref=e212]
+          - generic [ref=e213]:
+            - generic [ref=e214]:
+              - generic [ref=e215]: Published (7d)
+              - generic [ref=e216]: "137"
+              - generic [ref=e217]: vs prev 7d +18
+            - generic [ref=e218]:
+              - generic [ref=e219]: Assets (Total)
+              - generic [ref=e220]: "510"
+          - generic [ref=e221]:
+            - generic [ref=e222]:
+              - generic [ref=e223]: Stale Drafts (30d+)
+              - generic [ref=e224]: "42"
+            - generic [ref=e225]:
+              - generic [ref=e226]: Scheduled (Next 7d)
+              - generic [ref=e227]: "12"
+          - heading "Content Type Distribution" [level=4] [ref=e229]
+          - list [ref=e230]:
+            - listitem [ref=e231]:
+              - generic [ref=e233]:
+                - generic [ref=e234]: LandingPage
+                - generic [ref=e235]: "310"
+            - listitem [ref=e238]:
+              - generic [ref=e240]:
+                - generic [ref=e241]: Article
+                - generic [ref=e242]: "442"
+            - listitem [ref=e245]:
+              - generic [ref=e247]:
+                - generic [ref=e248]: Teaser
+                - generic [ref=e249]: "268"
+            - listitem [ref=e252]:
+              - generic [ref=e254]:
+                - generic [ref=e255]: FAQ
+                - generic [ref=e256]: "119"
+    - contentinfo [ref=e259]: Made with 💚 by Tetris
