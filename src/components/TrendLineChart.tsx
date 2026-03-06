@@ -10,6 +10,7 @@ interface TrendLineChartProps {
   activePillars: Pillar[];
   darkMode: boolean;
   displayMode: 'normalized' | 'raw';
+  showLegend?: boolean;
 }
 
 const DEFAULT_SVG_WIDTH = 960;
@@ -121,7 +122,13 @@ const getTickIndices = (pointCount: number, maxTickCount: number): number[] => {
   return ticks;
 };
 
-export const TrendLineChart: React.FC<TrendLineChartProps> = ({ timeseries, activePillars, darkMode, displayMode }) => {
+export const TrendLineChart: React.FC<TrendLineChartProps> = ({
+  timeseries,
+  activePillars,
+  darkMode,
+  displayMode,
+  showLegend = true,
+}) => {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const svgRef = useRef<SVGSVGElement | null>(null);
   const wrapperRef = useRef<HTMLDivElement | null>(null);
@@ -274,6 +281,9 @@ export const TrendLineChart: React.FC<TrendLineChartProps> = ({ timeseries, acti
     : null;
 
   const hoveredX = hoveredIndex !== null ? xForIndex(hoveredIndex) : null;
+  const ariaLabel = plottedPillars.length === 1
+    ? `${pillarConfig[plottedPillars[0]].label} trend chart`
+    : 'Trend chart for dashboard adoption metrics';
 
   if (days.length === 0) {
     return (
@@ -285,30 +295,32 @@ export const TrendLineChart: React.FC<TrendLineChartProps> = ({ timeseries, acti
 
   return (
     <div className="space-y-spacing-16">
-      <div className="flex flex-wrap items-center gap-spacing-12">
-        {visiblePillars.map((pillar) => {
-          const pillarConfigEntry = pillarConfig[pillar];
-          const hasData = hasDataByPillar[pillar];
+      {showLegend && (
+        <div className="flex flex-wrap items-center gap-spacing-12">
+          {visiblePillars.map((pillar) => {
+            const pillarConfigEntry = pillarConfig[pillar];
+            const hasData = hasDataByPillar[pillar];
 
-          return (
-            <div
-              key={pillar}
-              className={`inline-flex items-center gap-spacing-8 rounded-tokenFull border px-spacing-12 py-spacing-4 text-xs font-semibold uppercase tracking-wide ${
-                hasData
-                  ? 'border-semantic-borderSubtle text-semantic-textNeutral dark:border-neutral-50/70 dark:text-neutral-5'
-                  : 'border-semantic-borderSubtle/70 text-neutral-60 dark:border-neutral-50/50 dark:text-neutral-25'
-              }`}
-            >
-              <span
-                className="inline-block h-spacing-8 w-spacing-8 rounded-tokenFull"
-                style={{ backgroundColor: pillarConfigEntry.color, opacity: hasData ? 1 : 0.35 }}
-              />
-              <span>{pillarConfigEntry.label}</span>
-              {!hasData && <span className="normal-case">(no data)</span>}
-            </div>
-          );
-        })}
-      </div>
+            return (
+              <div
+                key={pillar}
+                className={`inline-flex items-center gap-spacing-8 rounded-tokenFull border px-spacing-12 py-spacing-4 text-xs font-semibold uppercase tracking-wide ${
+                  hasData
+                    ? 'border-semantic-borderSubtle text-semantic-textNeutral dark:border-neutral-50/70 dark:text-neutral-5'
+                    : 'border-semantic-borderSubtle/70 text-neutral-60 dark:border-neutral-50/50 dark:text-neutral-25'
+                }`}
+              >
+                <span
+                  className="inline-block h-spacing-8 w-spacing-8 rounded-tokenFull"
+                  style={{ backgroundColor: pillarConfigEntry.color, opacity: hasData ? 1 : 0.35 }}
+                />
+                <span>{pillarConfigEntry.label}</span>
+                {!hasData && <span className="normal-case">(no data)</span>}
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {!hasAnyHistoricalData ? (
         <div className="rounded-sm border border-semantic-borderSubtle bg-semantic-backgroundNeutral p-spacing-20 text-sm text-neutral-60 dark:border-neutral-50/70 dark:bg-neutral-95 dark:text-neutral-25">
@@ -357,7 +369,7 @@ export const TrendLineChart: React.FC<TrendLineChartProps> = ({ timeseries, acti
               height={chartHeight}
               className="block"
               role="img"
-              aria-label="Normalized trend chart for dashboard adoption metrics"
+              aria-label={ariaLabel}
             >
             {yTicks.map((tickValue) => {
               const y = yForValue(tickValue);

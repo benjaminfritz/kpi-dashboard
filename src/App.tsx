@@ -8,6 +8,7 @@ import { Github, Layout, Moon, Sun } from 'lucide-react';
 
 type Pillar = 'design' | 'code' | 'content';
 type TrendDisplayMode = 'normalized' | 'raw';
+type TrendViewMode = 'combined' | 'perPillar';
 const MONO_ICON_STROKE_WIDTH = 1;
 
 const FigmaMonochromeIcon: React.FC = () => (
@@ -88,6 +89,7 @@ const App: React.FC = () => {
   const [activePillars, setActivePillars] = useState<Pillar[]>(['design', 'code', 'content']);
   const [timeSpan, setTimeSpan] = useState<TimeSpan>('30d');
   const [trendDisplayMode, setTrendDisplayMode] = useState<TrendDisplayMode>('raw');
+  const [trendViewMode, setTrendViewMode] = useState<TrendViewMode>('combined');
   const [darkMode, setDarkMode] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false;
     const savedTheme = window.localStorage.getItem('theme');
@@ -273,6 +275,7 @@ const App: React.FC = () => {
   const areAllPillarsVisible = activePillars.length === 0;
   const isFiltered = !areAllPillarsVisible && activePillars.length < pillarOrder.length;
   const isPillarActive = (pillar: Pillar) => areAllPillarsVisible || activePillars.includes(pillar);
+  const visiblePillars = pillarOrder.filter((pillar) => isPillarActive(pillar));
   const sectionTitleClass = 'mb-spacing-8 text-xs font-bold uppercase tracking-wider text-neutral-60 dark:text-neutral-25';
   const timeSpanOptions: TimeSpan[] = ['7d', '30d', '90d', '365d'];
   const timeSpanLabelByKey: Record<TimeSpan, string> = {
@@ -280,6 +283,16 @@ const App: React.FC = () => {
     '30d': 'Last 30 days',
     '90d': 'Last quarter',
     '365d': 'Last year',
+  };
+  const pillarLabelByKey: Record<Pillar, string> = {
+    design: 'Design',
+    code: 'Code',
+    content: 'Content',
+  };
+  const pillarAccentClassByKey: Record<Pillar, string> = {
+    design: 'bg-brand-vodafone dark:bg-brand-redTint',
+    code: 'bg-neutral-95 dark:bg-neutral-25',
+    content: 'bg-secondary-aquaBlue dark:bg-secondary-aquaBlueTint',
   };
   const activeRangeLabel = timeseriesData?.meta?.window
     ? formatRangeLabel(timeseriesData.meta.window.startDay, timeseriesData.meta.window.endDay)
@@ -331,6 +344,21 @@ const App: React.FC = () => {
       }
       return pillarOrder.filter((entry) => current.includes(entry) || entry === pillar);
     });
+  };
+
+  const getCardLayoutClass = (pillar: Pillar): string => {
+    if (visiblePillars.length === 1) {
+      return 'w-full lg:col-span-2 lg:col-start-3';
+    }
+
+    if (visiblePillars.length === 2) {
+      const visibleIndex = visiblePillars.indexOf(pillar);
+      return visibleIndex === 0
+        ? 'w-full lg:col-span-2 lg:col-start-2'
+        : 'w-full lg:col-span-2 lg:col-start-4';
+    }
+
+    return 'w-full lg:col-span-2';
   };
 
   return (
@@ -418,8 +446,8 @@ const App: React.FC = () => {
               </h3>
               <p className="mt-spacing-4 text-xs text-neutral-60 dark:text-neutral-25">
                 {trendDisplayMode === 'normalized'
-                  ? 'Over time, normalized to index 100 at each pillar\'s first available day.'
-                  : 'Over time using raw metric values.'}
+                  ? 'Trend over time, normalized to index 100 at each pillar\'s first available day.'
+                  : 'Trend over time using raw metric values.'}
               </p>
               {activeRangeLabel && (
                 <p className="mt-spacing-4 text-xs font-semibold uppercase tracking-wide text-neutral-60 dark:text-neutral-25">
@@ -455,162 +483,202 @@ const App: React.FC = () => {
                   <option value="normalized">Normalized</option>
                 </select>
               </label>
+              <label className="flex items-center gap-spacing-8 text-sm font-semibold text-semantic-textNeutral dark:text-neutral-5">
+                <span>Chart View</span>
+                <select
+                  value={trendViewMode}
+                  onChange={(event) => setTrendViewMode(event.target.value as TrendViewMode)}
+                  className="rounded-sm border border-semantic-borderSubtle bg-semantic-backgroundNeutral px-spacing-8 py-spacing-4 text-sm text-semantic-textNeutral [color-scheme:light] dark:border-neutral-50/70 dark:bg-neutral-85 dark:text-neutral-5 dark:[color-scheme:dark]"
+                  aria-label="Select trend chart view"
+                >
+                  <option value="combined">Combined</option>
+                  <option value="perPillar">Per Discipline</option>
+                </select>
+              </label>
             </div>
           </div>
-          <TrendLineChart
-            timeseries={timeseriesData}
-            activePillars={pillarOrder.filter((pillar) => isPillarActive(pillar))}
-            darkMode={darkMode}
-            displayMode={trendDisplayMode}
-          />
+          {trendViewMode === 'combined' ? (
+            <TrendLineChart
+              timeseries={timeseriesData}
+              activePillars={visiblePillars}
+              darkMode={darkMode}
+              displayMode={trendDisplayMode}
+            />
+          ) : (
+            <div className="grid grid-cols-1 gap-spacing-16 md:grid-cols-2 lg:grid-cols-6">
+              {visiblePillars.map((pillar) => (
+                <div
+                  key={pillar}
+                  className={`${getCardLayoutClass(pillar)} rounded-sm border border-semantic-borderSubtle bg-neutral-5/60 p-spacing-16 dark:border-neutral-50/70 dark:bg-neutral-95/70`}
+                >
+                  <div className="mb-spacing-12 flex items-center gap-spacing-8">
+                    <span className={`inline-block h-spacing-8 w-spacing-8 rounded-tokenFull ${pillarAccentClassByKey[pillar]}`} />
+                    <h4 className="text-sm font-semibold text-semantic-textNeutral dark:text-neutral-5">
+                      {pillarLabelByKey[pillar].toUpperCase()}
+                    </h4>
+                  </div>
+                  <TrendLineChart
+                    timeseries={timeseriesData}
+                    activePillars={[pillar]}
+                    darkMode={darkMode}
+                    displayMode={trendDisplayMode}
+                    showLegend={false}
+                  />
+                </div>
+              ))}
+            </div>
+          )}
         </section>
 
         {/* GRID LAYOUT */}
-        <div className="grid grid-cols-1 items-start gap-spacing-32 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 items-start gap-spacing-32 md:grid-cols-2 lg:grid-cols-6">
           
           {/* 1. FIGMA */}
           {isPillarActive('design') && (
-          <KpiCard
-            title="DESIGN"
-            icon={<FigmaMonochromeIcon />}
-            hideOutline
-            accentClassName="bg-brand-vodafone dark:bg-brand-redTint"
-          >
-             {data.figma ? (
-               <>
-                 <h4 className={sectionTitleClass}>Library Footprint</h4>
-                 <div className="overflow-hidden rounded-sm border border-semantic-borderSubtle dark:border-neutral-50/70">
-                   <div className="bg-neutral-5 p-spacing-12 text-left dark:bg-neutral-95">
-                     <div className="text-4xl font-light text-neutral-95 dark:text-neutral-5">
-                       {data.figma.filesCount.toLocaleString()}
+          <div className={getCardLayoutClass('design')}>
+            <KpiCard
+              title="DESIGN"
+              icon={<FigmaMonochromeIcon />}
+              hideOutline
+              accentClassName="bg-brand-vodafone dark:bg-brand-redTint"
+            >
+               {data.figma ? (
+                 <>
+                   <h4 className={sectionTitleClass}>Library Footprint</h4>
+                   <div className="overflow-hidden rounded-sm border border-semantic-borderSubtle dark:border-neutral-50/70">
+                     <div className="bg-neutral-5 p-spacing-12 text-left dark:bg-neutral-95">
+                       <div className="text-4xl font-light text-neutral-95 dark:text-neutral-5">
+                         {data.figma.filesCount.toLocaleString()}
+                       </div>
+                       <div className="mt-spacing-4 text-[10px] font-bold uppercase tracking-wider text-semantic-textNeutral dark:text-neutral-25">
+                         Figma Files Using brix/react Components
+                       </div>
                      </div>
-                     <div className="mt-spacing-4 text-[10px] font-bold uppercase tracking-wider text-semantic-textNeutral dark:text-neutral-25">
-                       Figma Files Using brix/react Components
+                     <div className="border-t border-brand-redTint/40 bg-brand-redTint/10 p-spacing-12 text-left dark:border-brand-redTint/50 dark:bg-brand-redTint/20">
+                       <div className="text-4xl font-light text-brand-red dark:text-neutral-5">
+                         {data.figma.totalComponentUsages.toLocaleString()}
+                       </div>
+                       <div className="mt-spacing-4 text-[10px] font-bold uppercase tracking-wider text-brand-red dark:text-neutral-5">
+                         Total Component Usages
+                       </div>
                      </div>
-                   </div>
-                   <div className="border-t border-brand-redTint/40 bg-brand-redTint/10 p-spacing-12 text-left dark:border-brand-redTint/50 dark:bg-brand-redTint/20">
-                     <div className="text-4xl font-light text-brand-red dark:text-neutral-5">
-                       {data.figma.totalComponentUsages.toLocaleString()}
-                     </div>
-                     <div className="mt-spacing-4 text-[10px] font-bold uppercase tracking-wider text-brand-red dark:text-neutral-5">
-                       Total Component Usages
-                     </div>
-                   </div>
-                   <div className="border-t border-secondary-aquaBlue/30 bg-secondary-aquaBlue/10 p-spacing-12 text-left dark:border-secondary-aquaBlue/40 dark:bg-secondary-aquaBlue/20">
-                     <div className="text-4xl font-light text-secondary-turquoise dark:text-secondary-aquaBlue">
-                       {data.figma.teamsUsingLibrary.toLocaleString()}
-                     </div>
-                     <div className="mt-spacing-4 text-[10px] font-bold uppercase tracking-wider text-secondary-aquaBlue dark:text-neutral-5">
-                       Teams Using This Library
-                     </div>
-                   </div>
-                 </div>
-                 <div className="my-spacing-16 h-px bg-semantic-borderSubtle/50 dark:bg-neutral-50/50"></div>
-                 <h4 className={sectionTitleClass}>Adoption Health</h4>
-                 <div className="space-y-spacing-8">
-                   <div className="flex justify-between text-xs font-medium">
-                     <span className="text-neutral-60 dark:text-neutral-25">Adoption Health (Insertions vs Detachments)</span>
-                     <span className="font-light text-semantic-textNeutral dark:text-neutral-5">{figmaInsertionsPercentage}% Insertions</span>
-                   </div>
-                   <div className="h-spacing-8 w-full overflow-hidden rounded-tokenFull bg-neutral-25 dark:bg-neutral-85">
-                     <div className="flex h-full w-full">
-                       <div
-                         className="h-full bg-brand-vodafone transition-all duration-1000 ease-out dark:bg-brand-redTint"
-                         style={{ width: `${figmaInsertionsPercentage}%` }}
-                       />
-                       <div
-                         className="h-full bg-secondary-aquaBlue transition-all duration-1000 ease-out dark:bg-secondary-aquaBlueTint"
-                         style={{ width: `${figmaDetachmentsPercentage}%` }}
-                       />
+                     <div className="border-t border-secondary-aquaBlue/30 bg-secondary-aquaBlue/10 p-spacing-12 text-left dark:border-secondary-aquaBlue/40 dark:bg-secondary-aquaBlue/20">
+                       <div className="text-4xl font-light text-secondary-turquoise dark:text-secondary-aquaBlue">
+                         {data.figma.teamsUsingLibrary.toLocaleString()}
+                       </div>
+                       <div className="mt-spacing-4 text-[10px] font-bold uppercase tracking-wider text-secondary-aquaBlue dark:text-neutral-5">
+                         Teams Using This Library
+                       </div>
                      </div>
                    </div>
-                   <div className="flex flex-wrap items-center justify-between gap-spacing-8 text-[11px] font-medium">
-                     <span className="text-brand-vodafone dark:text-brand-redTint">
-                       Insertions: {figmaInsertions.toLocaleString()} ({figmaInsertionsPercentage}%)
-                     </span>
-                     <span className="text-secondary-aquaBlue dark:text-secondary-aquaBlueTint">
-                       Detachments: {figmaDetachments.toLocaleString()} ({figmaDetachmentsPercentage}%)
-                     </span>
-                   </div>
-                 </div>
-                 <h4 className={sectionTitleClass}>Activity (30d)</h4>
-                 <div className="grid grid-cols-2 gap-spacing-12">
-                   <div className="rounded-sm border border-brand-redTint/30 bg-brand-redTint/10 p-spacing-12 dark:bg-brand-redTint/20">
-                     <div className="text-xs uppercase tracking-wide text-brand-red dark:text-neutral-5">Insertions (30d)</div>
-                     <div className="mt-spacing-4 text-xl font-light text-brand-vodafone dark:text-brand-redTint">{data.figma.componentInsertionsLast30Days.toLocaleString()}</div>
-                   </div>
-                   <div className="rounded-sm border border-secondary-aquaBlue/30 bg-secondary-aquaBlue/10 p-spacing-12 dark:bg-secondary-aquaBlue/20">
-                     <div className="text-xs uppercase tracking-wide text-secondary-aquaBlue dark:text-neutral-5">Detachments (30d)</div>
-                     <div className="mt-spacing-4 text-xl font-light text-secondary-turquoise dark:text-secondary-aquaBlue">{data.figma.componentDetachmentsLast30Days.toLocaleString()}</div>
-                   </div>
-                 </div>
-                 <h4 className={`${sectionTitleClass} mt-spacing-16`}>Most Detached Components (30d)</h4>
-                 {data.figma.topDetachedComponents.length > 0 ? (
-                   <ul className="space-y-spacing-12">
-                     {data.figma.topDetachedComponents.map((item) => (
-                       <li key={item.componentName}>
-                         <ProgressBar
-                           label={item.componentName}
-                           value={item.detachments}
-                           max={maxFigmaDetachedComponentCount}
-                           color="bg-secondary-aquaBlue dark:bg-secondary-aquaBlueTint"
+                   <div className="my-spacing-16 h-px bg-semantic-borderSubtle/50 dark:bg-neutral-50/50"></div>
+                   <h4 className={sectionTitleClass}>Adoption Health</h4>
+                   <div className="space-y-spacing-8">
+                     <div className="flex justify-between text-xs font-medium">
+                       <span className="text-neutral-60 dark:text-neutral-25">Adoption Health (Insertions vs Detachments)</span>
+                       <span className="font-light text-semantic-textNeutral dark:text-neutral-5">{figmaInsertionsPercentage}% Insertions</span>
+                     </div>
+                     <div className="h-spacing-8 w-full overflow-hidden rounded-tokenFull bg-neutral-25 dark:bg-neutral-85">
+                       <div className="flex h-full w-full">
+                         <div
+                           className="h-full bg-brand-vodafone transition-all duration-1000 ease-out dark:bg-brand-redTint"
+                           style={{ width: `${figmaInsertionsPercentage}%` }}
                          />
-                       </li>
-                     ))}
-                   </ul>
-                 ) : (
-                   <div className="text-xs text-neutral-60 dark:text-neutral-25">No component detachment data available for the selected period.</div>
-                 )}
-                 <div className="my-spacing-16 h-px bg-semantic-borderSubtle/50 dark:bg-neutral-50/50"></div>
-                 <h4 className={sectionTitleClass}>Top library consuming teams</h4>
-                 {data.figma.topLibraryConsumingTeams.length > 0 ? (
-                   <ul className="space-y-spacing-12">
-                     {data.figma.topLibraryConsumingTeams.map((item) => (
-                       <li key={item.teamName}>
-                         <ProgressBar
-                           label={item.teamName}
-                           value={item.usages}
-                           max={maxFigmaTeamUsage}
-                           color="bg-secondary-turquoise dark:bg-secondary-turquoiseTint"
+                         <div
+                           className="h-full bg-secondary-aquaBlue transition-all duration-1000 ease-out dark:bg-secondary-aquaBlueTint"
+                           style={{ width: `${figmaDetachmentsPercentage}%` }}
                          />
-                       </li>
-                     ))}
-                   </ul>
-                 ) : (
-                   <div className="text-xs text-neutral-60 dark:text-neutral-25">No team usage data available for the selected period.</div>
-                 )}
-                 <h4 className={`${sectionTitleClass} mt-spacing-4`}>Top Components by Usage</h4>
-                 {data.figma.topComponentUsage.length > 0 ? (
-                   <ul className="space-y-spacing-12">
-                     {data.figma.topComponentUsage.map((item) => (
-                       <li key={item.componentName}>
-                         <ProgressBar
-                           label={item.componentName}
-                           value={item.usages}
-                           max={maxFigmaComponentUsage}
-                           color="bg-secondary-aquaBlue dark:bg-secondary-aquaBlueTint"
-                         />
-                       </li>
-                     ))}
-                   </ul>
-                 ) : (
-                   <div className="text-xs text-neutral-60 dark:text-neutral-25">No usage data available for the selected period.</div>
-                 )}
-               </>
-             ) : (
-               <div className="rounded-sm border border-semantic-borderSubtle bg-neutral-5 p-spacing-16 text-sm text-neutral-60 dark:border-neutral-50/70 dark:bg-neutral-95 dark:text-neutral-25">
-                 <p className="mb-spacing-8 font-medium text-semantic-textNeutral dark:text-neutral-5">No live Figma analytics available.</p>
-                 <p>Set `FIGMA_ACCESS_TOKEN` and `FIGMA_LIBRARY_FILE_KEY`, then verify `/api/figma-config-check`.</p>
-                 {figmaStatus?.validation?.detail && (
-                   <p className="mt-spacing-8 text-xs">Error: {figmaStatus.validation.detail}</p>
-                 )}
-               </div>
-             )}
-          </KpiCard>
+                       </div>
+                     </div>
+                     <div className="flex flex-wrap items-center justify-between gap-spacing-8 text-[11px] font-medium">
+                       <span className="text-brand-vodafone dark:text-brand-redTint">
+                         Insertions: {figmaInsertions.toLocaleString()} ({figmaInsertionsPercentage}%)
+                       </span>
+                       <span className="text-secondary-aquaBlue dark:text-secondary-aquaBlueTint">
+                         Detachments: {figmaDetachments.toLocaleString()} ({figmaDetachmentsPercentage}%)
+                       </span>
+                     </div>
+                   </div>
+                   <h4 className={sectionTitleClass}>Activity (30d)</h4>
+                   <div className="grid grid-cols-2 gap-spacing-12">
+                     <div className="rounded-sm border border-brand-redTint/30 bg-brand-redTint/10 p-spacing-12 dark:bg-brand-redTint/20">
+                       <div className="text-xs uppercase tracking-wide text-brand-red dark:text-neutral-5">Insertions (30d)</div>
+                       <div className="mt-spacing-4 text-xl font-light text-brand-vodafone dark:text-brand-redTint">{data.figma.componentInsertionsLast30Days.toLocaleString()}</div>
+                     </div>
+                     <div className="rounded-sm border border-secondary-aquaBlue/30 bg-secondary-aquaBlue/10 p-spacing-12 dark:bg-secondary-aquaBlue/20">
+                       <div className="text-xs uppercase tracking-wide text-secondary-aquaBlue dark:text-neutral-5">Detachments (30d)</div>
+                       <div className="mt-spacing-4 text-xl font-light text-secondary-turquoise dark:text-secondary-aquaBlue">{data.figma.componentDetachmentsLast30Days.toLocaleString()}</div>
+                     </div>
+                   </div>
+                   <h4 className={`${sectionTitleClass} mt-spacing-16`}>Most Detached Components (30d)</h4>
+                   {data.figma.topDetachedComponents.length > 0 ? (
+                     <ul className="space-y-spacing-12">
+                       {data.figma.topDetachedComponents.map((item) => (
+                         <li key={item.componentName}>
+                           <ProgressBar
+                             label={item.componentName}
+                             value={item.detachments}
+                             max={maxFigmaDetachedComponentCount}
+                             color="bg-secondary-aquaBlue dark:bg-secondary-aquaBlueTint"
+                           />
+                         </li>
+                       ))}
+                     </ul>
+                   ) : (
+                     <div className="text-xs text-neutral-60 dark:text-neutral-25">No component detachment data available for the selected period.</div>
+                   )}
+                   <div className="my-spacing-16 h-px bg-semantic-borderSubtle/50 dark:bg-neutral-50/50"></div>
+                   <h4 className={sectionTitleClass}>Top library consuming teams</h4>
+                   {data.figma.topLibraryConsumingTeams.length > 0 ? (
+                     <ul className="space-y-spacing-12">
+                       {data.figma.topLibraryConsumingTeams.map((item) => (
+                         <li key={item.teamName}>
+                           <ProgressBar
+                             label={item.teamName}
+                             value={item.usages}
+                             max={maxFigmaTeamUsage}
+                             color="bg-secondary-turquoise dark:bg-secondary-turquoiseTint"
+                           />
+                         </li>
+                       ))}
+                     </ul>
+                   ) : (
+                     <div className="text-xs text-neutral-60 dark:text-neutral-25">No team usage data available for the selected period.</div>
+                   )}
+                   <h4 className={`${sectionTitleClass} mt-spacing-4`}>Top Components by Usage</h4>
+                   {data.figma.topComponentUsage.length > 0 ? (
+                     <ul className="space-y-spacing-12">
+                       {data.figma.topComponentUsage.map((item) => (
+                         <li key={item.componentName}>
+                           <ProgressBar
+                             label={item.componentName}
+                             value={item.usages}
+                             max={maxFigmaComponentUsage}
+                             color="bg-secondary-aquaBlue dark:bg-secondary-aquaBlueTint"
+                           />
+                         </li>
+                       ))}
+                     </ul>
+                   ) : (
+                     <div className="text-xs text-neutral-60 dark:text-neutral-25">No usage data available for the selected period.</div>
+                   )}
+                 </>
+               ) : (
+                 <div className="rounded-sm border border-semantic-borderSubtle bg-neutral-5 p-spacing-16 text-sm text-neutral-60 dark:border-neutral-50/70 dark:bg-neutral-95 dark:text-neutral-25">
+                   <p className="mb-spacing-8 font-medium text-semantic-textNeutral dark:text-neutral-5">No live Figma analytics available.</p>
+                   <p>Set `FIGMA_ACCESS_TOKEN` and `FIGMA_LIBRARY_FILE_KEY`, then verify `/api/figma-config-check`.</p>
+                   {figmaStatus?.validation?.detail && (
+                     <p className="mt-spacing-8 text-xs">Error: {figmaStatus.validation.detail}</p>
+                   )}
+                 </div>
+               )}
+            </KpiCard>
+          </div>
           )}
 
           {/* 2. GITHUB / REACT COMPONENTS */}
           {isPillarActive('code') && (
+          <div className={getCardLayoutClass('code')}>
           <KpiCard
             title="CODE"
             icon={<GitHubMonochromeIcon />}
@@ -740,10 +808,12 @@ const App: React.FC = () => {
               ))}
             </ul>
           </KpiCard>
+          </div>
           )}
 
           {/* 3. CONTENTFUL */}
           {isPillarActive('content') && (
+          <div className={getCardLayoutClass('content')}>
           <KpiCard
             title="CONTENT"
             icon={<ContentfulMonochromeIcon />}
@@ -852,6 +922,7 @@ const App: React.FC = () => {
               </div>
             )}
           </KpiCard>
+          </div>
           )}
 
         </div>
