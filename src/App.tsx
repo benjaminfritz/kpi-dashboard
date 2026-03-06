@@ -4,7 +4,7 @@ import { ContentfulConfigStatus, DashboardData, DashboardTimeseriesResponse, Fig
 import { KpiCard } from './components/KpiCard';
 import { ProgressBar } from './components/ProgressBar';
 import { TrendLineChart } from './components/TrendLineChart';
-import { Github, Layout, Moon, Sun } from 'lucide-react';
+import { Github, Moon, Sun } from 'lucide-react';
 
 type Pillar = 'design' | 'code' | 'content';
 type TrendDisplayMode = 'normalized' | 'raw';
@@ -195,7 +195,12 @@ const App: React.FC = () => {
         <header className="mb-spacing-40 flex flex-col gap-spacing-16 md:flex-row md:items-end md:justify-between">
           <div>
             <div className="mb-spacing-4 flex items-center gap-spacing-8 text-brand-vodafone">
-              <Layout size={20} />
+              <img
+                src="https://www.vodafone.de/media/img/icons/mid-render/New_VF_Icon_RGB_RED.svg"
+                alt=""
+                aria-hidden="true"
+                className="h-[20px] w-[20px] object-contain"
+              />
               <span className="font-vodafone text-xs font-light uppercase tracking-wider">brix/react Dashboard</span>
             </div>
             <h1 className="font-vodafone text-heading-md font-light tracking-tight">Design System Metrics</h1>
@@ -310,6 +315,7 @@ const App: React.FC = () => {
     ? 'border-secondary-springGreen/40 bg-secondary-springGreen/10 text-secondary-springGreen dark:border-secondary-springGreen/50 dark:bg-secondary-springGreen/20'
     : 'border-brand-redTint/40 bg-brand-redTint/10 text-brand-red dark:border-brand-redTint/60 dark:bg-brand-redTint/20 dark:text-neutral-5';
   const unavailableStatusClassName = 'border-brand-redTint/40 bg-brand-redTint/10 text-brand-red dark:border-brand-redTint/60 dark:bg-brand-redTint/20 dark:text-neutral-5';
+  const githubMockModeClassName = 'border-secondary-lemonYellow/50 bg-secondary-lemonYellow/20 text-semantic-textNeutral dark:border-secondary-lemonYellow/60 dark:bg-secondary-lemonYellow/10 dark:text-secondary-lemonYellow';
   const githubStatusLabel = githubStatus?.mode === 'mock'
     ? 'GitHub: Mock Mode'
     : githubStatus?.ready
@@ -320,7 +326,7 @@ const App: React.FC = () => {
           ? 'GitHub: Access Error'
           : 'GitHub: Status Unknown';
   const githubStatusClassName = githubStatus?.mode === 'mock'
-    ? 'border-secondary-lemonYellow/50 bg-secondary-lemonYellow/20 text-semantic-textNeutral dark:border-secondary-lemonYellow/60 dark:bg-secondary-lemonYellow/10 dark:text-secondary-lemonYellow'
+    ? githubMockModeClassName
     : githubStatus?.ready
       ? 'border-secondary-springGreen/40 bg-secondary-springGreen/10 text-secondary-springGreen dark:border-secondary-springGreen/50 dark:bg-secondary-springGreen/20'
       : unavailableStatusClassName;
@@ -335,6 +341,9 @@ const App: React.FC = () => {
   const contentfulStatusClassName = contentfulStatus?.ready
     ? 'border-secondary-springGreen/40 bg-secondary-springGreen/10 text-secondary-springGreen dark:border-secondary-springGreen/50 dark:bg-secondary-springGreen/20'
     : 'border-brand-redTint/40 bg-brand-redTint/10 text-brand-red dark:border-brand-redTint/60 dark:bg-brand-redTint/20 dark:text-neutral-5';
+  const githubSourceClassName = data.github.source === 'mock'
+    ? githubMockModeClassName
+    : 'border-semantic-borderSubtle bg-semantic-backgroundNeutral text-neutral-60 dark:border-neutral-50/70 dark:bg-neutral-95 dark:text-neutral-25';
 
   const togglePillar = (pillar: Pillar) => {
     setActivePillars((current) => {
@@ -368,7 +377,12 @@ const App: React.FC = () => {
         <header className="mb-spacing-40 flex flex-col gap-spacing-16 md:flex-row md:items-end md:justify-between">
           <div>
             <div className="mb-spacing-4 flex items-center gap-spacing-8 text-brand-vodafone">
-              <Layout size={20} />
+              <img
+                src="https://www.vodafone.de/media/img/icons/mid-render/New_VF_Icon_RGB_RED.svg"
+                alt=""
+                aria-hidden="true"
+                className="h-[20px] w-[20px] object-contain"
+              />
               <span className="font-vodafone text-xs font-light uppercase tracking-wider">brix/react Dashboard</span>
             </div>
             <h1 className="font-vodafone text-heading-md font-light tracking-tight">Design System Metrics</h1>
@@ -686,7 +700,7 @@ const App: React.FC = () => {
             accentClassName="bg-brand-vodafone dark:bg-brand-redTint"
           >
             <h4 className={sectionTitleClass}>External Adoption</h4>
-            <div className="rounded-tokenFull border border-semantic-borderSubtle bg-semantic-backgroundNeutral px-spacing-12 py-spacing-4 text-[11px] font-semibold uppercase tracking-wide text-neutral-60 dark:border-neutral-50/70 dark:bg-neutral-95 dark:text-neutral-25">
+            <div className={`rounded-tokenFull border px-spacing-12 py-spacing-4 text-[11px] font-semibold uppercase tracking-wide ${githubSourceClassName}`}>
               Source: {data.github.source === 'mock' ? 'Mock Data' : 'Live GitHub API'}
             </div>
             <div className="overflow-hidden rounded-sm border border-semantic-borderSubtle dark:border-neutral-50/70">
