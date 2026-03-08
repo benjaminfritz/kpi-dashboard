@@ -87,8 +87,8 @@ const App: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [activePillars, setActivePillars] = useState<Pillar[]>(['design', 'code', 'content']);
-  const [timeSpan, setTimeSpan] = useState<TimeSpan>('30d');
-  const [trendDisplayMode, setTrendDisplayMode] = useState<TrendDisplayMode>('raw');
+  const [timeSpan, setTimeSpan] = useState<TimeSpan>('7d');
+  const [trendDisplayMode, setTrendDisplayMode] = useState<TrendDisplayMode>('normalized');
   const [trendViewMode, setTrendViewMode] = useState<TrendViewMode>('combined');
   const [darkMode, setDarkMode] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false;
