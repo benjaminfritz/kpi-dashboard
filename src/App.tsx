@@ -493,8 +493,8 @@ const App: React.FC = () => {
                   className="rounded-sm border border-semantic-borderSubtle bg-semantic-backgroundNeutral px-spacing-8 py-spacing-4 text-sm text-semantic-textNeutral [color-scheme:light] dark:border-neutral-50/70 dark:bg-neutral-85 dark:text-neutral-5 dark:[color-scheme:dark]"
                   aria-label="Select trend display mode"
                 >
-                  <option value="raw">Raw</option>
                   <option value="normalized">Normalized</option>
+                  <option value="raw">Raw</option>
                 </select>
               </label>
               <label className="flex items-center gap-spacing-8 text-sm font-semibold text-semantic-textNeutral dark:text-neutral-5">
