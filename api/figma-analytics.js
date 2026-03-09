@@ -1,7 +1,7 @@
 const FIGMA_API_BASE_URL = "https://api.figma.com/v1";
 const LOOKBACK_DAYS_DEFAULT = 30;
 const MAX_TOP_COMPONENTS = 5;
-const MAX_TOP_TEAMS = 3;
+const MAX_TOP_TEAMS = 5;
 
 const sumBy = (rows, key) =>
   rows.reduce((sum, row) => {
