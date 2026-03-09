@@ -76,6 +76,10 @@ const formatRawValue = (value: number | null): string => {
   return value.toLocaleString();
 };
 
+const formatYAxisTickValue = (value: number, displayMode: 'normalized' | 'raw'): string => (
+  displayMode === 'normalized' ? value.toFixed(0) : Math.round(value).toLocaleString()
+);
+
 const normalizeSeries = (values: Array<number | null>): Array<number | null> => {
   const baseline = values.find((value) => value !== null);
 
@@ -198,12 +202,6 @@ export const TrendLineChart: React.FC<TrendLineChartProps> = ({
 
   const hasAnyHistoricalData = displayedValues.length > 0;
 
-  const isCompactWidth = chartWidth < 640;
-  const margin = isCompactWidth ? MARGIN_MOBILE : MARGIN_DESKTOP;
-  const chartHeight = isCompactWidth ? SVG_HEIGHT_MOBILE : SVG_HEIGHT_DESKTOP;
-  const plotWidth = Math.max(1, chartWidth - margin.left - margin.right);
-  const plotHeight = Math.max(1, chartHeight - margin.top - margin.bottom);
-
   const minValue = hasAnyHistoricalData ? Math.min(...displayedValues) : 0;
   const maxValue = hasAnyHistoricalData ? Math.max(...displayedValues) : 100;
   const spread = maxValue - minValue;
@@ -211,6 +209,20 @@ export const TrendLineChart: React.FC<TrendLineChartProps> = ({
   const yMin = Math.max(0, minValue - padding);
   const yMax = maxValue + padding;
   const yRange = yMax - yMin || 1;
+  const yTicks = Array.from({ length: 5 }, (_, index) => yMax - ((index / 4) * yRange));
+
+  const isCompactWidth = chartWidth < 640;
+  const baseMargin = isCompactWidth ? MARGIN_MOBILE : MARGIN_DESKTOP;
+  const longestYAxisLabelLength = yTicks.reduce((maxLength, tickValue) => (
+    Math.max(maxLength, formatYAxisTickValue(tickValue, displayMode).length)
+  ), 0);
+  const margin = {
+    ...baseMargin,
+    left: Math.max(baseMargin.left, (longestYAxisLabelLength * 7) + 14),
+  };
+  const chartHeight = isCompactWidth ? SVG_HEIGHT_MOBILE : SVG_HEIGHT_DESKTOP;
+  const plotWidth = Math.max(1, chartWidth - margin.left - margin.right);
+  const plotHeight = Math.max(1, chartHeight - margin.top - margin.bottom);
 
   const xForIndex = (index: number): number => {
     if (days.length <= 1) {
@@ -257,8 +269,6 @@ export const TrendLineChart: React.FC<TrendLineChartProps> = ({
 
     return getTickIndices(days.length, Math.max(3, Math.floor(plotWidth / 72)));
   }, [chartWidth, days.length, isCompactWidth, plotWidth]);
-  const yTicks = Array.from({ length: 5 }, (_, index) => yMax - ((index / 4) * yRange));
-
   const handleMouseMove = (event: React.MouseEvent<SVGRectElement>) => {
     if (days.length === 0) return;
 
@@ -389,11 +399,11 @@ export const TrendLineChart: React.FC<TrendLineChartProps> = ({
                     y={y}
                     textAnchor="end"
                     dominantBaseline="middle"
-                    fontSize={12}
-                    fill="currentColor"
-                    opacity={0.75}
-                  >
-                    {displayMode === 'normalized' ? tickValue.toFixed(0) : Math.round(tickValue).toLocaleString()}
+                  fontSize={12}
+                  fill="currentColor"
+                  opacity={0.75}
+                >
+                    {formatYAxisTickValue(tickValue, displayMode)}
                   </text>
                 </g>
               );

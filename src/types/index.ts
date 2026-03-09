@@ -51,8 +51,16 @@ export interface ContentfulData {
   weeklyPublishRateDelta: number;
   contentTypeDistributionStatus?: 'ok' | 'unavailable';
   contentTypeDistributionError?: string | null;
+  taxonomyDistributionStatus?: 'ok' | 'unavailable';
+  taxonomyDistributionError?: string | null;
+  taxonomyDistributionScheme?: string | null;
   contentTypeDistribution: {
     contentType: string;
+    entries: number;
+  }[];
+  taxonomyDistribution: {
+    conceptId: string;
+    conceptLabel: string;
     entries: number;
   }[];
 }

@@ -35,7 +35,8 @@ const isContentfulData = (value) => {
     isNumber(value.scheduledEntriesNext7Days) &&
     isNumber(value.weeklyPublishRate) &&
     isNumber(value.weeklyPublishRateDelta) &&
-    isArray(value.contentTypeDistribution)
+    isArray(value.contentTypeDistribution) &&
+    (value.taxonomyDistribution === undefined || isArray(value.taxonomyDistribution))
   );
 };
 
@@ -81,10 +82,17 @@ export const isDashboardSnapshotPayload = (value) => {
 
 export const toDashboardDataFromSnapshot = (snapshot) => {
   const fallbackLastUpdated = new Date(snapshot.createdAt).toLocaleTimeString();
+  const contentful = snapshot.contentful || {};
 
   return {
     figma: snapshot.figma,
-    contentful: snapshot.contentful,
+    contentful: {
+      ...contentful,
+      taxonomyDistributionStatus: contentful.taxonomyDistributionStatus ?? 'ok',
+      taxonomyDistributionError: contentful.taxonomyDistributionError ?? null,
+      taxonomyDistributionScheme: contentful.taxonomyDistributionScheme ?? null,
+      taxonomyDistribution: Array.isArray(contentful.taxonomyDistribution) ? contentful.taxonomyDistribution : [],
+    },
     github: snapshot.github,
     lastUpdated: snapshot.lastUpdatedLabel || fallbackLastUpdated,
   };
