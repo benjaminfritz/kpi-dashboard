@@ -16,11 +16,21 @@ const fallbackDashboardData = {
     weeklyPublishRateDelta: 18,
     contentTypeDistributionStatus: 'ok',
     contentTypeDistributionError: null,
+    taxonomyDistributionStatus: 'ok',
+    taxonomyDistributionError: null,
+    taxonomyDistributionScheme: 'deConsumer',
     contentTypeDistribution: [
       { contentType: 'LandingPage', entries: 310 },
       { contentType: 'Article', entries: 442 },
       { contentType: 'Teaser', entries: 268 },
       { contentType: 'FAQ', entries: 119 },
+    ],
+    taxonomyDistribution: [
+      { conceptId: 'documentationPages', conceptLabel: 'Documentation Pages', entries: 41 },
+      { conceptId: 'header', conceptLabel: 'Header', entries: 4 },
+      { conceptId: 'optionenAppsServicesMoFu', conceptLabel: 'Optionen Apps Services MoFu', entries: 3 },
+      { conceptId: 'legalSeiten', conceptLabel: 'Legal Seiten', entries: 2 },
+      { conceptId: 'uncategorized', conceptLabel: 'Uncategorized', entries: 1200 },
     ],
   },
   github: {

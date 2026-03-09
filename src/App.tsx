@@ -9,6 +9,7 @@ import { Github, Moon, Sun } from 'lucide-react';
 type Pillar = 'design' | 'code' | 'content';
 type TrendDisplayMode = 'normalized' | 'raw';
 type TrendViewMode = 'combined' | 'perPillar';
+type ContentDistributionMode = 'contentType' | 'taxonomy';
 const MONO_ICON_STROKE_WIDTH = 1;
 
 const FigmaMonochromeIcon: React.FC = () => (
@@ -90,6 +91,7 @@ const App: React.FC = () => {
   const [timeSpan, setTimeSpan] = useState<TimeSpan>('7d');
   const [trendDisplayMode, setTrendDisplayMode] = useState<TrendDisplayMode>('normalized');
   const [trendViewMode, setTrendViewMode] = useState<TrendViewMode>('combined');
+  const [contentDistributionMode, setContentDistributionMode] = useState<ContentDistributionMode>('contentType');
   const [darkMode, setDarkMode] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false;
     const savedTheme = window.localStorage.getItem('theme');
@@ -269,13 +271,16 @@ const App: React.FC = () => {
     : 0;
   const formatDelta = (value: number) => `${value > 0 ? '+' : ''}${value}`;
   const weeklyPublishRateDeltaClassName = data.contentful.weeklyPublishRateDelta >= 0
-    ? 'text-secondary-springGreen dark:text-secondary-springGreenTint'
+    ? 'text-brand-vodafone dark:text-brand-redTint'
     : 'text-brand-red dark:text-brand-redTint';
   const contentTypeDistributionUnavailable = data.contentful.contentTypeDistributionStatus === 'unavailable';
+  const taxonomyDistributionUnavailable = data.contentful.taxonomyDistributionStatus === 'unavailable';
   const repoViewsDeltaClassName = data.github.repoViews14dDelta >= 0
-    ? 'text-secondary-springGreen dark:text-secondary-springGreenTint'
+    ? 'text-brand-vodafone dark:text-brand-redTint'
     : 'text-brand-red dark:text-brand-redTint';
   const maxContentTypeEntries = Math.max(...data.contentful.contentTypeDistribution.map((item) => item.entries), 1);
+  const maxTaxonomyEntries = Math.max(...data.contentful.taxonomyDistribution.map((item) => item.entries), 1);
+  const showingContentTypeDistribution = contentDistributionMode === 'contentType';
   const pillarOrder: Pillar[] = ['design', 'code', 'content'];
   const areAllPillarsVisible = activePillars.length === 0;
   const isFiltered = !areAllPillarsVisible && activePillars.length < pillarOrder.length;
@@ -493,7 +498,7 @@ const App: React.FC = () => {
                   className="rounded-sm border border-semantic-borderSubtle bg-semantic-backgroundNeutral px-spacing-8 py-spacing-4 text-sm text-semantic-textNeutral [color-scheme:light] dark:border-neutral-50/70 dark:bg-neutral-85 dark:text-neutral-5 dark:[color-scheme:dark]"
                   aria-label="Select trend display mode"
                 >
-                  <option value="normalized">Normalized</option>
+                  <option value="normalized">Indexed</option>
                   <option value="raw">Raw</option>
                 </select>
               </label>
@@ -914,26 +919,75 @@ const App: React.FC = () => {
               </div>
             </div>
             <div className="my-spacing-16 h-px bg-semantic-borderSubtle/50 dark:bg-neutral-50/50"></div>
-            <h4 className={sectionTitleClass}>Content Type Distribution</h4>
-            {data.contentful.contentTypeDistribution.length > 0 ? (
-              <ul className="space-y-spacing-12">
-                {data.contentful.contentTypeDistribution.map((item) => (
-                  <li key={item.contentType}>
-                    <ProgressBar
-                      label={item.contentType}
-                      value={item.entries}
-                      max={maxContentTypeEntries}
-                      color="bg-secondary-aquaBlue dark:bg-secondary-aquaBlueTint"
-                    />
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <div className="text-xs text-neutral-60 dark:text-neutral-25">
-                {contentTypeDistributionUnavailable
-                  ? `Content type distribution unavailable. ${data.contentful.contentTypeDistributionError || ''}`.trim()
-                  : 'No content type distribution data available.'}
+            <div className="mb-spacing-8 flex items-center justify-between gap-spacing-12">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-neutral-60 dark:text-neutral-25">Distribution</h4>
+              <div className="inline-flex rounded-tokenFull border border-semantic-borderSubtle bg-semantic-backgroundNeutral p-[2px] dark:border-neutral-50/70 dark:bg-neutral-95">
+                <button
+                  type="button"
+                  onClick={() => setContentDistributionMode('contentType')}
+                  className={`rounded-tokenFull px-spacing-12 py-spacing-4 text-[11px] font-semibold uppercase tracking-wide transition ${
+                    showingContentTypeDistribution
+                      ? 'bg-secondary-aquaBlue text-neutral-white dark:bg-secondary-aquaBlue dark:text-neutral-95'
+                      : 'text-neutral-60 dark:text-neutral-25'
+                  }`}
+                >
+                  Content Type
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setContentDistributionMode('taxonomy')}
+                  className={`rounded-tokenFull px-spacing-12 py-spacing-4 text-[11px] font-semibold uppercase tracking-wide transition ${
+                    !showingContentTypeDistribution
+                      ? 'bg-brand-red text-neutral-white dark:bg-brand-redTint dark:text-neutral-95'
+                      : 'text-neutral-60 dark:text-neutral-25'
+                  }`}
+                >
+                  Taxonomy
+                </button>
               </div>
+            </div>
+            {showingContentTypeDistribution ? (
+              data.contentful.contentTypeDistribution.length > 0 ? (
+                <ul className="space-y-spacing-12">
+                  {data.contentful.contentTypeDistribution.map((item) => (
+                    <li key={item.contentType}>
+                      <ProgressBar
+                        label={item.contentType}
+                        value={item.entries}
+                        max={maxContentTypeEntries}
+                        color="bg-secondary-aquaBlue dark:bg-secondary-aquaBlueTint"
+                      />
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <div className="text-xs text-neutral-60 dark:text-neutral-25">
+                  {contentTypeDistributionUnavailable
+                    ? `Content type distribution unavailable. ${data.contentful.contentTypeDistributionError || ''}`.trim()
+                    : 'No content type distribution data available.'}
+                </div>
+              )
+            ) : (
+              data.contentful.taxonomyDistribution.length > 0 ? (
+                <ul className="space-y-spacing-12">
+                  {data.contentful.taxonomyDistribution.map((item) => (
+                    <li key={item.conceptId}>
+                      <ProgressBar
+                        label={item.conceptLabel}
+                        value={item.entries}
+                        max={maxTaxonomyEntries}
+                        color="bg-brand-red dark:bg-brand-redTint"
+                      />
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <div className="text-xs text-neutral-60 dark:text-neutral-25">
+                  {taxonomyDistributionUnavailable
+                    ? `Taxonomy distribution unavailable. ${data.contentful.taxonomyDistributionError || ''}`.trim()
+                    : 'No taxonomy distribution data available.'}
+                </div>
+              )
             )}
           </KpiCard>
           </div>

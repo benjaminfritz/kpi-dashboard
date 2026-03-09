@@ -6,6 +6,8 @@ const DEFAULT_SCHEDULE_WINDOW_DAYS = 7;
 const DEFAULT_TOP_CONTENT_TYPES = 15;
 const MAX_TOP_CONTENT_TYPES = 30;
 const CONTENT_TYPES_PAGE_LIMIT = 100;
+const ENTRIES_PAGE_LIMIT = 100;
+const MAX_TAXONOMY_SCHEMES = 10;
 const DEFAULT_CONTENT_TYPE_DISTRIBUTION_CONCURRENCY = 3;
 const DEFAULT_RATE_LIMIT_RETRIES = 5;
 const DEFAULT_BASE_RETRY_DELAY_MS = 250;
@@ -58,6 +60,7 @@ const CONTENT_TYPE_DISTRIBUTION_CACHE_TTL_MS = parsePositiveInteger(
 );
 
 const contentTypeDistributionCache = new Map();
+const taxonomyDistributionCache = new Map();
 
 const parseDate = (value) => {
   if (typeof value !== "string" || value.length === 0) return null;
@@ -254,6 +257,36 @@ const getContentTypeName = (contentType) => {
   return "Unknown Content Type";
 };
 
+const getTaxonomyConceptSchemeId = (value) => {
+  const id = value?.sys?.id;
+  return typeof id === "string" && id.trim().length > 0 ? id.trim() : null;
+};
+
+const formatConceptLabel = (conceptId) => {
+  if (typeof conceptId !== "string" || conceptId.trim().length === 0) {
+    return "Unknown Concept";
+  }
+
+  return conceptId
+    .trim()
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+};
+
+const getEntryConceptIds = (entry) => {
+  const concepts = Array.isArray(entry?.metadata?.concepts) ? entry.metadata.concepts : [];
+
+  return Array.from(
+    new Set(
+      concepts
+        .map((concept) => concept?.sys?.id)
+        .filter((conceptId) => typeof conceptId === "string" && conceptId.length > 0)
+    )
+  );
+};
+
 const mapWithConcurrency = async (items, concurrency, mapper) => {
   if (!Array.isArray(items) || items.length === 0) return [];
 
@@ -301,6 +334,145 @@ const fetchAllContentTypes = async ({ token, spaceId, environmentId }) => {
   }
 
   return items;
+};
+
+const fetchAllEntries = async ({ token, spaceId, environmentId }) => {
+  const items = [];
+  let skip = 0;
+
+  while (true) {
+    const payload = await requestContentful({
+      token,
+      path: buildEnvironmentPath(spaceId, environmentId, "/entries"),
+      searchParams: {
+        limit: String(ENTRIES_PAGE_LIMIT),
+        skip: String(skip),
+      },
+    });
+
+    const pageItems = Array.isArray(payload?.items) ? payload.items : [];
+    items.push(...pageItems);
+
+    const total = typeof payload?.total === "number" ? payload.total : items.length;
+    skip += pageItems.length;
+
+    if (skip >= total || pageItems.length === 0) {
+      break;
+    }
+  }
+
+  return items;
+};
+
+const fetchTaxonomySchemeIds = async ({ token, spaceId, environmentId }) => {
+  const contentTypes = await fetchAllContentTypes({ token, spaceId, environmentId });
+  const schemeIds = new Map();
+
+  contentTypes.forEach((contentType) => {
+    const validations = Array.isArray(contentType?.metadata?.taxonomy) ? contentType.metadata.taxonomy : [];
+
+    validations.forEach((validation) => {
+      if (validation?.sys?.linkType !== "TaxonomyConceptScheme") {
+        return;
+      }
+
+      const schemeId = getTaxonomyConceptSchemeId(validation);
+      if (!schemeId) {
+        return;
+      }
+
+      schemeIds.set(schemeId, (schemeIds.get(schemeId) || 0) + 1);
+    });
+  });
+
+  return Array.from(schemeIds.entries())
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, MAX_TAXONOMY_SCHEMES)
+    .map(([schemeId]) => schemeId);
+};
+
+const resolveSelectedTaxonomyScheme = async ({ token, spaceId, environmentId, query, env }) => {
+  const queryOverride = pickFirst(query.taxonomy_scheme);
+  if (typeof queryOverride === "string" && queryOverride.trim().length > 0) {
+    return {
+      selectedScheme: queryOverride.trim(),
+      detectedSchemes: [],
+      selectionSource: "query",
+    };
+  }
+
+  const envOverride = env.CONTENTFUL_TAXONOMY_SCHEME;
+  if (typeof envOverride === "string" && envOverride.trim().length > 0) {
+    return {
+      selectedScheme: envOverride.trim(),
+      detectedSchemes: [],
+      selectionSource: "env",
+    };
+  }
+
+  const detectedSchemes = await fetchTaxonomySchemeIds({ token, spaceId, environmentId });
+
+  return {
+    selectedScheme: detectedSchemes.length === 1 ? detectedSchemes[0] : null,
+    detectedSchemes,
+    selectionSource: detectedSchemes.length === 1 ? "auto" : "none",
+  };
+};
+
+const fetchEntryTaxonomyDistribution = async ({
+  token,
+  spaceId,
+  environmentId,
+  topContentTypes,
+  selectedScheme,
+}) => {
+  const cacheKey = `${spaceId}:${environmentId}:${selectedScheme || "all"}`;
+  const cached = taxonomyDistributionCache.get(cacheKey);
+  if (cached && cached.expiresAt > Date.now()) {
+    return cached.value.slice(0, topContentTypes);
+  }
+
+  const conceptCounts = new Map();
+  let uncategorizedEntries = 0;
+  const entries = await fetchAllEntries({ token, spaceId, environmentId });
+
+  entries.forEach((entry) => {
+    const conceptIds = getEntryConceptIds(entry);
+
+    if (conceptIds.length === 0) {
+      uncategorizedEntries += 1;
+      return;
+    }
+
+    conceptIds.forEach((conceptId) => {
+      conceptCounts.set(conceptId, (conceptCounts.get(conceptId) || 0) + 1);
+    });
+  });
+
+  const distribution = Array.from(conceptCounts.entries())
+    .map(([conceptId, entries]) => ({
+      conceptId,
+      conceptLabel: formatConceptLabel(conceptId),
+      entries,
+    }))
+    .sort((a, b) => b.entries - a.entries);
+
+  if (uncategorizedEntries > 0) {
+    distribution.push({
+      conceptId: "uncategorized",
+      conceptLabel: "Uncategorized",
+      entries: uncategorizedEntries,
+    });
+  }
+
+  distribution.sort((a, b) => b.entries - a.entries);
+
+  taxonomyDistributionCache.set(cacheKey, {
+    value: distribution,
+    expiresAt: Date.now() + CONTENT_TYPE_DISTRIBUTION_CACHE_TTL_MS,
+  });
+
+  return distribution.slice(0, topContentTypes);
 };
 
 const fetchContentTypeDistribution = async ({ token, spaceId, environmentId, topContentTypes }) => {
@@ -393,6 +565,12 @@ export const loadContentfulAnalytics = async ({ query = {}, env = process.env } 
     MAX_TOP_CONTENT_TYPES
   );
 
+  const {
+    selectedScheme,
+    detectedSchemes,
+    selectionSource,
+  } = await resolveSelectedTaxonomyScheme({ token, spaceId, environmentId, query, env });
+
   const now = new Date();
   const publishedSince = new Date(now);
   publishedSince.setUTCDate(publishedSince.getUTCDate() - lookbackDays);
@@ -406,6 +584,7 @@ export const loadContentfulAnalytics = async ({ query = {}, env = process.env } 
   scheduleWindowEnd.setUTCDate(scheduleWindowEnd.getUTCDate() + scheduleWindowDays);
 
   let contentTypeDistributionError = null;
+  let taxonomyDistributionError = null;
 
   const [
     totalEntries,
@@ -418,6 +597,7 @@ export const loadContentfulAnalytics = async ({ query = {}, env = process.env } 
     totalAssets,
     scheduledMetrics,
     contentTypeDistribution,
+    resolvedTaxonomyDistribution,
   ] = await Promise.all([
     fetchCount({
       token,
@@ -485,7 +665,25 @@ export const loadContentfulAnalytics = async ({ query = {}, env = process.env } 
         error instanceof Error ? error.message : "Unknown content type distribution error";
       return [];
     }),
+    fetchEntryTaxonomyDistribution({
+      token,
+      spaceId,
+      environmentId,
+      topContentTypes,
+      selectedScheme,
+    }).catch((error) => {
+      taxonomyDistributionError =
+        error instanceof Error ? error.message : "Unknown taxonomy distribution error";
+      return [];
+    }),
   ]);
+
+  const taxonomyDistribution =
+    !selectedScheme && detectedSchemes.length > 1 ? [] : resolvedTaxonomyDistribution;
+
+  if (!selectedScheme && detectedSchemes.length > 1) {
+    taxonomyDistributionError = `Multiple taxonomy schemes detected (${detectedSchemes.join(", ")}). Set CONTENTFUL_TAXONOMY_SCHEME or use ?taxonomy_scheme=.`;
+  }
 
   const weeklyPublishRateDelta = weeklyPublishRate - previousWeeklyPublishRate;
 
@@ -503,6 +701,14 @@ export const loadContentfulAnalytics = async ({ query = {}, env = process.env } 
     contentTypeDistributionStatus: contentTypeDistributionError ? "unavailable" : "ok",
     contentTypeDistributionError,
     contentTypeDistribution,
+    taxonomyDistributionStatus: taxonomyDistributionError ? "unavailable" : "ok",
+    taxonomyDistributionError,
+    taxonomyDistributionScheme: selectedScheme,
+    taxonomyDistribution,
+    taxonomyDistributionMeta: {
+      selectionSource,
+      detectedSchemes,
+    },
   };
 };
 

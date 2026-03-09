@@ -24,11 +24,21 @@ const fallbackDashboardData: Omit<DashboardData, 'lastUpdated' | 'figma'> = {
     weeklyPublishRateDelta: 18,
     contentTypeDistributionStatus: 'ok',
     contentTypeDistributionError: null,
+    taxonomyDistributionStatus: 'ok',
+    taxonomyDistributionError: null,
+    taxonomyDistributionScheme: 'deConsumer',
     contentTypeDistribution: [
       { contentType: "LandingPage", entries: 310 },
       { contentType: "Article", entries: 442 },
       { contentType: "Teaser", entries: 268 },
       { contentType: "FAQ", entries: 119 },
+    ],
+    taxonomyDistribution: [
+      { conceptId: 'documentationPages', conceptLabel: 'Documentation Pages', entries: 41 },
+      { conceptId: 'header', conceptLabel: 'Header', entries: 4 },
+      { conceptId: 'optionenAppsServicesMoFu', conceptLabel: 'Optionen Apps Services MoFu', entries: 3 },
+      { conceptId: 'legalSeiten', conceptLabel: 'Legal Seiten', entries: 2 },
+      { conceptId: 'uncategorized', conceptLabel: 'Uncategorized', entries: 1200 },
     ],
   },
   github: {
@@ -116,9 +126,18 @@ const isLiveContentfulPayload = (payload: unknown): payload is ContentfulData =>
     typeof candidate.scheduledEntriesNext7Days === 'number' &&
     typeof candidate.weeklyPublishRate === 'number' &&
     typeof candidate.weeklyPublishRateDelta === 'number' &&
-    Array.isArray(candidate.contentTypeDistribution)
+    Array.isArray(candidate.contentTypeDistribution) &&
+    (candidate.taxonomyDistribution === undefined || Array.isArray(candidate.taxonomyDistribution))
   );
 };
+
+const normalizeContentfulData = (contentful: ContentfulData): ContentfulData => ({
+  ...contentful,
+  taxonomyDistributionStatus: contentful.taxonomyDistributionStatus ?? 'ok',
+  taxonomyDistributionError: contentful.taxonomyDistributionError ?? null,
+  taxonomyDistributionScheme: contentful.taxonomyDistributionScheme ?? null,
+  taxonomyDistribution: Array.isArray(contentful.taxonomyDistribution) ? contentful.taxonomyDistribution : [],
+});
 
 const fetchLiveContentfulData = async (): Promise<ContentfulData> => {
   const response = await fetch('/api/contentful-analytics');
@@ -131,7 +150,7 @@ const fetchLiveContentfulData = async (): Promise<ContentfulData> => {
     throw new Error("Contentful analytics payload has unexpected shape");
   }
 
-  return payload;
+  return normalizeContentfulData(payload);
 };
 
 const isLiveGithubPayload = (payload: unknown): payload is GithubData => {
@@ -209,7 +228,10 @@ const fetchLatestStoredDashboardData = async (): Promise<DashboardData | null> =
     throw new Error("Dashboard snapshot payload has unexpected data shape");
   }
 
-  return candidate.data;
+  return {
+    ...candidate.data,
+    contentful: normalizeContentfulData(candidate.data.contentful),
+  };
 };
 
 export const fetchDashboardData = async (): Promise<DashboardData> => {
