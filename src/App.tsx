@@ -297,6 +297,17 @@ const App: React.FC = () => {
   const isTwoCardView = visiblePillars.length === 2;
   const hasExpandedCardLayout = visiblePillars.length <= 2;
   const sectionTitleClass = 'mb-spacing-8 text-xs font-bold uppercase tracking-wider text-neutral-60 dark:text-neutral-25';
+  const expandedSectionLayoutClass = hasExpandedCardLayout
+    ? 'space-y-spacing-16 xl:columns-2 xl:gap-spacing-24'
+    : 'space-y-spacing-16';
+  const expandedSectionClassName = hasExpandedCardLayout
+    ? 'break-inside-avoid mb-spacing-16 xl:mb-spacing-24'
+    : '';
+  const expandedContentSectionLayoutClass = hasExpandedCardLayout
+    ? 'grid grid-cols-1 gap-spacing-16 xl:grid-cols-2 xl:gap-spacing-24'
+    : 'space-y-spacing-16';
+  const expandedContentSectionClassName = hasExpandedCardLayout ? '' : '';
+  const expandedContentDistributionSectionClassName = hasExpandedCardLayout ? 'xl:col-span-2' : '';
   const timeSpanOptions: TimeSpan[] = ['30d', '90d', '365d'];
   const timeSpanLabelByKey: Record<TimeSpan, string> = {
     '30d': 'Last 30 days',
@@ -570,8 +581,8 @@ const App: React.FC = () => {
             >
                {data.figma ? (
                  <>
-                   <div className={hasExpandedCardLayout ? 'space-y-spacing-16 xl:grid xl:grid-cols-2 xl:items-start xl:gap-spacing-24 xl:space-y-0' : 'space-y-spacing-16'}>
-                     <CollapsibleSection title="Library Footprint" titleClassName={sectionTitleClass}>
+                   <div className={expandedSectionLayoutClass}>
+                     <CollapsibleSection title="Library Footprint" titleClassName={sectionTitleClass} className={expandedSectionClassName}>
                        <div className="overflow-hidden rounded-sm border border-semantic-borderSubtle dark:border-neutral-50/70">
                          <div className="bg-neutral-5 p-spacing-12 text-left dark:bg-neutral-95">
                            <div className="text-4xl font-light text-neutral-95 dark:text-neutral-5">
@@ -599,7 +610,7 @@ const App: React.FC = () => {
                          </div>
                        </div>
                      </CollapsibleSection>
-                     <CollapsibleSection title="Adoption Health" titleClassName={sectionTitleClass}>
+                     <CollapsibleSection title="Adoption Health" titleClassName={sectionTitleClass} className={expandedSectionClassName}>
                        <div className="space-y-spacing-8">
                          <div className="flex justify-between gap-spacing-8 text-xs font-medium">
                            <span className="text-neutral-60 dark:text-neutral-25">Adoption Health (Insertions vs Detachments)</span>
@@ -627,7 +638,7 @@ const App: React.FC = () => {
                          </div>
                        </div>
                      </CollapsibleSection>
-                     <CollapsibleSection title="Activity (30d)" titleClassName={sectionTitleClass}>
+                     <CollapsibleSection title="Activity (30d)" titleClassName={sectionTitleClass} className={expandedSectionClassName}>
                        <div className="grid grid-cols-1 gap-spacing-12 sm:grid-cols-2">
                          <div className="rounded-sm border border-brand-redTint/30 bg-brand-redTint/10 p-spacing-12 dark:bg-brand-redTint/20">
                            <div className="text-xs uppercase tracking-wide text-brand-red dark:text-neutral-5">Insertions (30d)</div>
@@ -639,7 +650,7 @@ const App: React.FC = () => {
                          </div>
                        </div>
                      </CollapsibleSection>
-                     <CollapsibleSection title="Most Detached Components (30d)" titleClassName={sectionTitleClass}>
+                     <CollapsibleSection title="Most Detached Components (30d)" titleClassName={sectionTitleClass} className={expandedSectionClassName}>
                        {data.figma.topDetachedComponents.length > 0 ? (
                          <ul className="space-y-spacing-12">
                            {data.figma.topDetachedComponents.map((item) => (
@@ -657,7 +668,7 @@ const App: React.FC = () => {
                          <div className="text-xs text-neutral-60 dark:text-neutral-25">No component detachment data available for the selected period.</div>
                        )}
                      </CollapsibleSection>
-                     <CollapsibleSection title="Top library consuming teams" titleClassName={sectionTitleClass}>
+                     <CollapsibleSection title="Top library consuming teams" titleClassName={sectionTitleClass} className={expandedSectionClassName}>
                        {data.figma.topLibraryConsumingTeams.length > 0 ? (
                          <ul className="space-y-spacing-12">
                            {data.figma.topLibraryConsumingTeams.map((item) => (
@@ -675,7 +686,7 @@ const App: React.FC = () => {
                          <div className="text-xs text-neutral-60 dark:text-neutral-25">No team usage data available for the selected period.</div>
                        )}
                      </CollapsibleSection>
-                     <CollapsibleSection title="Top Components by Usage" titleClassName={sectionTitleClass}>
+                     <CollapsibleSection title="Top Components by Usage" titleClassName={sectionTitleClass} className={expandedSectionClassName}>
                        {data.figma.topComponentUsage.length > 0 ? (
                          <ul className="space-y-spacing-12">
                            {data.figma.topComponentUsage.map((item) => (
@@ -718,8 +729,8 @@ const App: React.FC = () => {
             accentClassName="bg-brand-vodafone dark:bg-brand-redTint"
             className="h-full"
           >
-            <div className={hasExpandedCardLayout ? 'space-y-spacing-16 xl:grid xl:grid-cols-2 xl:items-start xl:gap-spacing-24 xl:space-y-0' : 'space-y-spacing-16'}>
-              <CollapsibleSection title="External Adoption" titleClassName={sectionTitleClass}>
+            <div className={expandedSectionLayoutClass}>
+              <CollapsibleSection title="External Adoption" titleClassName={sectionTitleClass} className={expandedSectionClassName}>
                 <div className={`mb-spacing-12 rounded-tokenFull border px-spacing-12 py-spacing-4 text-[11px] font-semibold uppercase tracking-wide ${githubSourceClassName}`}>
                   Source: {data.github.source === 'mock' ? 'Mock Data' : 'Live GitHub API'}
                 </div>
@@ -750,7 +761,7 @@ const App: React.FC = () => {
                   </div>
                 </div>
               </CollapsibleSection>
-              <CollapsibleSection title="Repo Traffic (14d)" titleClassName={sectionTitleClass}>
+              <CollapsibleSection title="Repo Traffic (14d)" titleClassName={sectionTitleClass} className={expandedSectionClassName}>
                 <div className="grid grid-cols-1 gap-spacing-12 sm:grid-cols-2">
                   <div className="rounded-sm border border-brand-redTint/30 bg-brand-redTint/10 p-spacing-12 dark:bg-brand-redTint/20">
                     <div className="text-xs uppercase tracking-wide text-brand-red dark:text-neutral-5">Views (14d)</div>
@@ -772,7 +783,7 @@ const App: React.FC = () => {
                   <div className="mt-spacing-4 text-lg font-light text-semantic-textNeutral dark:text-neutral-5">{data.github.uniqueVisitors14d.toLocaleString()}</div>
                 </div>
               </CollapsibleSection>
-              <CollapsibleSection title="Issue & PR Health" titleClassName={sectionTitleClass}>
+              <CollapsibleSection title="Issue & PR Health" titleClassName={sectionTitleClass} className={expandedSectionClassName}>
                 <div className="grid grid-cols-1 gap-spacing-12 sm:grid-cols-3">
                   <div className="rounded-sm border border-semantic-borderSubtle bg-neutral-5 p-spacing-12 dark:border-neutral-50/70 dark:bg-neutral-95">
                     <div className="text-[10px] uppercase tracking-wide text-neutral-60 dark:text-neutral-25">Open Bugs</div>
@@ -816,7 +827,7 @@ const App: React.FC = () => {
                   </div>
                 </div>
               </CollapsibleSection>
-              <CollapsibleSection title="Top Consuming Repositories" titleClassName={sectionTitleClass}>
+              <CollapsibleSection title="Top Consuming Repositories" titleClassName={sectionTitleClass} className={expandedSectionClassName}>
                 <ul className="space-y-spacing-12">
                   {data.github.topConsumingRepos.map((item) => (
                     <li key={item.repo}>
@@ -830,7 +841,7 @@ const App: React.FC = () => {
                   ))}
                 </ul>
               </CollapsibleSection>
-              <CollapsibleSection title="Top Imported Components" titleClassName={sectionTitleClass}>
+              <CollapsibleSection title="Top Imported Components" titleClassName={sectionTitleClass} className={expandedSectionClassName}>
                 <ul className="space-y-spacing-12">
                   {data.github.topImportedComponents.map((item) => (
                     <li key={item.componentName}>
@@ -859,8 +870,8 @@ const App: React.FC = () => {
             accentClassName="bg-brand-vodafone dark:bg-brand-redTint"
             className="h-full"
           >
-            <div className={hasExpandedCardLayout ? 'space-y-spacing-16 xl:grid xl:grid-cols-2 xl:items-start xl:gap-spacing-24 xl:space-y-0' : 'space-y-spacing-16'}>
-              <CollapsibleSection title="Content Footprint" titleClassName={sectionTitleClass}>
+            <div className={expandedContentSectionLayoutClass}>
+              <CollapsibleSection title="Content Footprint" titleClassName={sectionTitleClass} className={expandedContentSectionClassName}>
                 <div className="overflow-hidden rounded-sm border border-semantic-borderSubtle dark:border-neutral-50/70">
                   <div className="bg-neutral-5 p-spacing-12 text-left dark:bg-neutral-95">
                     <div className="text-4xl font-light text-neutral-95 dark:text-neutral-5">
@@ -888,7 +899,7 @@ const App: React.FC = () => {
                   </div>
                 </div>
               </CollapsibleSection>
-              <CollapsibleSection title="Publishing Health" titleClassName={sectionTitleClass}>
+              <CollapsibleSection title="Publishing Health" titleClassName={sectionTitleClass} className={expandedContentSectionClassName}>
                 <div className="space-y-spacing-8">
                   <div className="flex justify-between gap-spacing-8 text-xs font-medium">
                     <span className="text-neutral-60 dark:text-neutral-25">Published vs Draft</span>
@@ -916,7 +927,7 @@ const App: React.FC = () => {
                   </div>
                 </div>
               </CollapsibleSection>
-              <CollapsibleSection title="Activity" titleClassName={sectionTitleClass}>
+              <CollapsibleSection title="Activity" titleClassName={sectionTitleClass} className={expandedContentSectionClassName}>
                 <div className="grid grid-cols-1 gap-spacing-12 sm:grid-cols-2">
                   <div className="rounded-sm border border-brand-redTint/30 bg-brand-redTint/10 p-spacing-12 dark:bg-brand-redTint/20">
                     <div className="text-xs uppercase tracking-wide text-brand-red dark:text-neutral-5">Published (30d)</div>
@@ -941,7 +952,7 @@ const App: React.FC = () => {
                   </div>
                 </div>
               </CollapsibleSection>
-              <CollapsibleSection title="Asset Types" titleClassName={sectionTitleClass}>
+              <CollapsibleSection title="Asset Types" titleClassName={sectionTitleClass} className={expandedContentSectionClassName}>
                 {data.contentful.assetTypeDistribution.length > 0 ? (
                   <ul className="space-y-spacing-12">
                     {data.contentful.assetTypeDistribution.map((item) => (
@@ -963,7 +974,7 @@ const App: React.FC = () => {
                   </div>
                 )}
               </CollapsibleSection>
-              <CollapsibleSection title="Distribution" titleClassName={sectionTitleClass}>
+              <CollapsibleSection title="Distribution" titleClassName={sectionTitleClass} className={expandedContentDistributionSectionClassName}>
                 <div>
                   <div className="mb-spacing-12 flex w-full rounded-tokenFull border border-semantic-borderSubtle bg-semantic-backgroundNeutral p-[2px] dark:border-neutral-50/70 dark:bg-neutral-95">
                       <button
