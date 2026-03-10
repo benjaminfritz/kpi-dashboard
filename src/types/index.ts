@@ -53,6 +53,8 @@ export interface ContentfulData {
   contentTypeDistributionError?: string | null;
   taxonomyDistributionStatus?: 'ok' | 'unavailable';
   taxonomyDistributionError?: string | null;
+  tagDistributionStatus?: 'ok' | 'unavailable';
+  tagDistributionError?: string | null;
   taxonomyDistributionScheme?: string | null;
   contentTypeDistribution: {
     contentType: string;
@@ -61,6 +63,11 @@ export interface ContentfulData {
   taxonomyDistribution: {
     conceptId: string;
     conceptLabel: string;
+    entries: number;
+  }[];
+  tagDistribution: {
+    tagId: string;
+    tagLabel: string;
     entries: number;
   }[];
 }

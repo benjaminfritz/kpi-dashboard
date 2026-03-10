@@ -36,7 +36,8 @@ const isContentfulData = (value) => {
     isNumber(value.publishedEntries30d) &&
     isNumber(value.publishedEntries30dDelta) &&
     isArray(value.contentTypeDistribution) &&
-    (value.taxonomyDistribution === undefined || isArray(value.taxonomyDistribution))
+    (value.taxonomyDistribution === undefined || isArray(value.taxonomyDistribution)) &&
+    (value.tagDistribution === undefined || isArray(value.tagDistribution))
   );
 };
 
@@ -90,8 +91,13 @@ export const toDashboardDataFromSnapshot = (snapshot) => {
       ...contentful,
       taxonomyDistributionStatus: contentful.taxonomyDistributionStatus ?? 'ok',
       taxonomyDistributionError: contentful.taxonomyDistributionError ?? null,
+      tagDistributionStatus: contentful.tagDistributionStatus ?? 'ok',
+      tagDistributionError: contentful.tagDistributionError ?? null,
       taxonomyDistributionScheme: contentful.taxonomyDistributionScheme ?? null,
-      taxonomyDistribution: Array.isArray(contentful.taxonomyDistribution) ? contentful.taxonomyDistribution : [],
+      taxonomyDistribution: Array.isArray(contentful.taxonomyDistribution)
+        ? contentful.taxonomyDistribution.filter((item) => item?.conceptId !== 'uncategorized')
+        : [],
+      tagDistribution: Array.isArray(contentful.tagDistribution) ? contentful.tagDistribution : [],
     },
     github: snapshot.github,
     lastUpdated: snapshot.lastUpdatedLabel || fallbackLastUpdated,
