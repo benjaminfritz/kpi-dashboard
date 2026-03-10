@@ -276,12 +276,14 @@ const App: React.FC = () => {
   const contentTypeDistributionUnavailable = data.contentful.contentTypeDistributionStatus === 'unavailable';
   const taxonomyDistributionUnavailable = data.contentful.taxonomyDistributionStatus === 'unavailable';
   const tagDistributionUnavailable = data.contentful.tagDistributionStatus === 'unavailable';
+  const assetTypeDistributionUnavailable = data.contentful.assetTypeDistributionStatus === 'unavailable';
   const repoViewsDeltaClassName = data.github.repoViews14dDelta >= 0
     ? 'text-brand-vodafone dark:text-brand-redTint'
     : 'text-brand-red dark:text-brand-redTint';
   const maxContentTypeEntries = Math.max(...data.contentful.contentTypeDistribution.map((item) => item.entries), 1);
   const maxTaxonomyEntries = Math.max(...data.contentful.taxonomyDistribution.map((item) => item.entries), 1);
   const maxTagEntries = Math.max(...data.contentful.tagDistribution.map((item) => item.entries), 1);
+  const maxAssetTypeEntries = Math.max(...data.contentful.assetTypeDistribution.map((item) => item.entries), 1);
   const showingContentTypeDistribution = contentDistributionMode === 'contentType';
   const showingTaxonomyDistribution = contentDistributionMode === 'taxonomy';
   const showingTagDistribution = contentDistributionMode === 'tags';
@@ -953,13 +955,36 @@ const App: React.FC = () => {
                 </div>
               </div>
               <div>
-                <div className="mb-spacing-8">
+                <h4 className={sectionTitleClass}>Asset Types</h4>
+                {data.contentful.assetTypeDistribution.length > 0 ? (
+                  <ul className="space-y-spacing-12">
+                    {data.contentful.assetTypeDistribution.map((item) => (
+                      <li key={item.assetType}>
+                        <ProgressBar
+                          label={item.assetType}
+                          value={item.entries}
+                          max={maxAssetTypeEntries}
+                          color="bg-secondary-turquoise dark:bg-secondary-turquoiseTint"
+                        />
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <div className="text-xs text-neutral-60 dark:text-neutral-25">
+                    {assetTypeDistributionUnavailable
+                      ? `Asset type distribution unavailable. ${data.contentful.assetTypeDistributionError || ''}`.trim()
+                      : 'No asset type data available.'}
+                  </div>
+                )}
+              </div>
+              <div>
+                <div>
                   <h4 className="text-xs font-bold uppercase tracking-wider text-neutral-60 dark:text-neutral-25">Distribution</h4>
-                  <div className="my-spacing-8 inline-flex rounded-tokenFull border border-semantic-borderSubtle bg-semantic-backgroundNeutral p-[2px] dark:border-neutral-50/70 dark:bg-neutral-95">
+                  <div className="mt-spacing-8 mb-spacing-12 flex w-full rounded-tokenFull border border-semantic-borderSubtle bg-semantic-backgroundNeutral p-[2px] dark:border-neutral-50/70 dark:bg-neutral-95">
                       <button
                         type="button"
                         onClick={() => setContentDistributionMode('contentType')}
-                        className={`rounded-tokenFull px-spacing-12 py-spacing-4 text-[11px] font-semibold uppercase tracking-wide transition ${
+                        className={`min-w-0 flex-1 rounded-tokenFull px-spacing-12 py-spacing-4 text-center text-[11px] font-semibold uppercase tracking-wide transition ${
                           showingContentTypeDistribution
                             ? 'bg-secondary-aquaBlue text-neutral-white dark:bg-secondary-aquaBlue dark:text-neutral-95'
                             : 'text-neutral-60 dark:text-neutral-25'
@@ -970,7 +995,7 @@ const App: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => setContentDistributionMode('taxonomy')}
-                        className={`rounded-tokenFull px-spacing-12 py-spacing-4 text-[11px] font-semibold uppercase tracking-wide transition ${
+                        className={`min-w-0 flex-1 rounded-tokenFull px-spacing-12 py-spacing-4 text-center text-[11px] font-semibold uppercase tracking-wide transition ${
                           showingTaxonomyDistribution
                             ? 'bg-brand-red text-neutral-white dark:bg-brand-redTint dark:text-neutral-95'
                             : 'text-neutral-60 dark:text-neutral-25'
@@ -981,7 +1006,7 @@ const App: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => setContentDistributionMode('tags')}
-                        className={`rounded-tokenFull px-spacing-12 py-spacing-4 text-[11px] font-semibold uppercase tracking-wide transition ${
+                        className={`min-w-0 flex-1 rounded-tokenFull px-spacing-12 py-spacing-4 text-center text-[11px] font-semibold uppercase tracking-wide transition ${
                           showingTagDistribution
                             ? 'bg-neutral-95 text-neutral-white dark:bg-neutral-25 dark:text-neutral-95'
                             : 'text-neutral-60 dark:text-neutral-25'

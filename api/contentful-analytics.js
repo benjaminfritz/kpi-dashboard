@@ -7,6 +7,7 @@ const DEFAULT_TOP_CONTENT_TYPES = 15;
 const MAX_TOP_CONTENT_TYPES = 30;
 const CONTENT_TYPES_PAGE_LIMIT = 100;
 const ENTRIES_PAGE_LIMIT = 100;
+const ASSETS_PAGE_LIMIT = 100;
 const MAX_TAXONOMY_SCHEMES = 10;
 const DEFAULT_CONTENT_TYPE_DISTRIBUTION_CONCURRENCY = 3;
 const DEFAULT_RATE_LIMIT_RETRIES = 5;
@@ -62,6 +63,7 @@ const CONTENT_TYPE_DISTRIBUTION_CACHE_TTL_MS = parsePositiveInteger(
 const contentTypeDistributionCache = new Map();
 const taxonomyDistributionCache = new Map();
 const tagDistributionCache = new Map();
+const assetTypeDistributionCache = new Map();
 
 const parseDate = (value) => {
   if (typeof value !== "string" || value.length === 0) return null;
@@ -289,6 +291,58 @@ const formatTagLabel = (tagId) => {
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
 };
 
+const extractFileExtension = (fileName) => {
+  if (typeof fileName !== "string") return null;
+  const trimmed = fileName.trim();
+  if (trimmed.length === 0) return null;
+
+  const extension = trimmed.split(".").pop();
+  if (!extension || extension === trimmed) return null;
+
+  return extension.toUpperCase();
+};
+
+const getAssetFileDetails = (asset) => {
+  const fileField = asset?.fields?.file;
+  if (!fileField || typeof fileField !== "object") return null;
+
+  const localizedFile = Array.isArray(fileField)
+    ? fileField[0]
+    : Object.values(fileField).find((value) => value && typeof value === "object");
+
+  if (!localizedFile || typeof localizedFile !== "object") return null;
+
+  return localizedFile;
+};
+
+const formatMimeSubtype = (value) => value.replace(/^x-/, "").replace(/\+/g, " ").replace(/[.-]+/g, " ");
+
+const getAssetTypeLabel = (asset) => {
+  const file = getAssetFileDetails(asset);
+  const contentType = typeof file?.contentType === "string" ? file.contentType.trim().toLowerCase() : "";
+  const extension = extractFileExtension(file?.fileName);
+
+  if (contentType.startsWith("image/")) {
+    if (contentType === "image/jpeg") return "JPG";
+    return extension || formatMimeSubtype(contentType.slice("image/".length)).toUpperCase();
+  }
+
+  if (contentType === "application/pdf") return "PDF";
+  if (contentType === "image/svg+xml") return "SVG";
+
+  if (contentType.includes("/")) {
+    const [, subtype] = contentType.split("/", 2);
+    if (subtype) {
+      return formatMimeSubtype(subtype)
+        .split(" ")
+        .map((part) => (part.length <= 4 ? part.toUpperCase() : part.charAt(0).toUpperCase() + part.slice(1)))
+        .join(" ");
+    }
+  }
+
+  return extension || "Unknown";
+};
+
 const getEntryConceptIds = (entry) => {
   const concepts = Array.isArray(entry?.metadata?.concepts) ? entry.metadata.concepts : [];
 
@@ -400,6 +454,34 @@ const fetchAllTags = async ({ token, spaceId, environmentId }) => {
       path: buildEnvironmentPath(spaceId, environmentId, "/tags"),
       searchParams: {
         limit: String(ENTRIES_PAGE_LIMIT),
+        skip: String(skip),
+      },
+    });
+
+    const pageItems = Array.isArray(payload?.items) ? payload.items : [];
+    items.push(...pageItems);
+
+    const total = typeof payload?.total === "number" ? payload.total : items.length;
+    skip += pageItems.length;
+
+    if (skip >= total || pageItems.length === 0) {
+      break;
+    }
+  }
+
+  return items;
+};
+
+const fetchAllAssets = async ({ token, spaceId, environmentId }) => {
+  const items = [];
+  let skip = 0;
+
+  while (true) {
+    const payload = await requestContentful({
+      token,
+      path: buildEnvironmentPath(spaceId, environmentId, "/assets"),
+      searchParams: {
+        limit: String(ASSETS_PAGE_LIMIT),
         skip: String(skip),
       },
     });
@@ -621,6 +703,33 @@ const fetchTagDistribution = async ({ token, spaceId, environmentId, topContentT
   return distribution.slice(0, topContentTypes);
 };
 
+const fetchAssetTypeDistribution = async ({ token, spaceId, environmentId, topContentTypes }) => {
+  const cacheKey = `${spaceId}:${environmentId}`;
+  const cached = assetTypeDistributionCache.get(cacheKey);
+  if (cached && cached.expiresAt > Date.now()) {
+    return cached.value.slice(0, topContentTypes);
+  }
+
+  const assets = await fetchAllAssets({ token, spaceId, environmentId });
+  const counts = new Map();
+
+  assets.forEach((asset) => {
+    const assetType = getAssetTypeLabel(asset);
+    counts.set(assetType, (counts.get(assetType) || 0) + 1);
+  });
+
+  const distribution = Array.from(counts.entries())
+    .map(([assetType, entries]) => ({ assetType, entries }))
+    .sort((a, b) => b.entries - a.entries);
+
+  assetTypeDistributionCache.set(cacheKey, {
+    value: distribution,
+    expiresAt: Date.now() + CONTENT_TYPE_DISTRIBUTION_CACHE_TTL_MS,
+  });
+
+  return distribution.slice(0, topContentTypes);
+};
+
 export const loadContentfulAnalytics = async ({ query = {}, env = process.env } = {}) => {
   const token = env.CONTENTFUL_MANAGEMENT_TOKEN;
   const spaceId = env.CONTENTFUL_SPACE_ID;
@@ -679,6 +788,7 @@ export const loadContentfulAnalytics = async ({ query = {}, env = process.env } 
   let contentTypeDistributionError = null;
   let taxonomyDistributionError = null;
   let tagDistributionError = null;
+  let assetTypeDistributionError = null;
 
   const [
     totalEntries,
@@ -693,6 +803,7 @@ export const loadContentfulAnalytics = async ({ query = {}, env = process.env } 
     contentTypeDistribution,
     resolvedTaxonomyDistribution,
     tagDistribution,
+    assetTypeDistribution,
   ] = await Promise.all([
     fetchCount({
       token,
@@ -776,6 +887,11 @@ export const loadContentfulAnalytics = async ({ query = {}, env = process.env } 
         error instanceof Error ? error.message : "Unknown tag distribution error";
       return [];
     }),
+    fetchAssetTypeDistribution({ token, spaceId, environmentId, topContentTypes }).catch((error) => {
+      assetTypeDistributionError =
+        error instanceof Error ? error.message : "Unknown asset type distribution error";
+      return [];
+    }),
   ]);
 
   const taxonomyDistribution =
@@ -808,6 +924,9 @@ export const loadContentfulAnalytics = async ({ query = {}, env = process.env } 
     tagDistributionStatus: tagDistributionError ? "unavailable" : "ok",
     tagDistributionError,
     tagDistribution,
+    assetTypeDistributionStatus: assetTypeDistributionError ? "unavailable" : "ok",
+    assetTypeDistributionError,
+    assetTypeDistribution,
     taxonomyDistributionMeta: {
       selectionSource,
       detectedSchemes,

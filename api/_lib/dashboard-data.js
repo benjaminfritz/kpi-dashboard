@@ -20,6 +20,8 @@ const fallbackDashboardData = {
     taxonomyDistributionError: null,
     tagDistributionStatus: 'ok',
     tagDistributionError: null,
+    assetTypeDistributionStatus: 'ok',
+    assetTypeDistributionError: null,
     taxonomyDistributionScheme: 'deConsumer',
     contentTypeDistribution: [
       { contentType: 'LandingPage', entries: 310 },
@@ -38,6 +40,13 @@ const fallbackDashboardData = {
       { tagId: 'campaign', tagLabel: 'Campaign', entries: 87 },
       { tagId: 'self-service', tagLabel: 'Self Service', entries: 54 },
       { tagId: 'legal', tagLabel: 'Legal', entries: 28 },
+    ],
+    assetTypeDistribution: [
+      { assetType: 'JPG', entries: 184 },
+      { assetType: 'PNG', entries: 143 },
+      { assetType: 'SVG', entries: 96 },
+      { assetType: 'PDF', entries: 54 },
+      { assetType: 'MP4', entries: 33 },
     ],
   },
   github: {
