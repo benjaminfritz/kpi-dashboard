@@ -4,6 +4,7 @@ import { ContentfulConfigStatus, DashboardData, DashboardTimeseriesResponse, Fig
 import { KpiCard } from './components/KpiCard';
 import { ProgressBar } from './components/ProgressBar';
 import { TrendLineChart } from './components/TrendLineChart';
+import { CollapsibleSection } from './components/CollapsibleSection';
 import { Github, Moon, Sun } from 'lucide-react';
 
 type Pillar = 'design' | 'code' | 'content';
@@ -570,8 +571,7 @@ const App: React.FC = () => {
                {data.figma ? (
                  <>
                    <div className={hasExpandedCardLayout ? 'space-y-spacing-16 xl:grid xl:grid-cols-2 xl:items-start xl:gap-spacing-24 xl:space-y-0' : 'space-y-spacing-16'}>
-                     <div>
-                       <h4 className={sectionTitleClass}>Library Footprint</h4>
+                     <CollapsibleSection title="Library Footprint" titleClassName={sectionTitleClass}>
                        <div className="overflow-hidden rounded-sm border border-semantic-borderSubtle dark:border-neutral-50/70">
                          <div className="bg-neutral-5 p-spacing-12 text-left dark:bg-neutral-95">
                            <div className="text-4xl font-light text-neutral-95 dark:text-neutral-5">
@@ -598,9 +598,8 @@ const App: React.FC = () => {
                            </div>
                          </div>
                        </div>
-                     </div>
-                     <div>
-                       <h4 className={sectionTitleClass}>Adoption Health</h4>
+                     </CollapsibleSection>
+                     <CollapsibleSection title="Adoption Health" titleClassName={sectionTitleClass}>
                        <div className="space-y-spacing-8">
                          <div className="flex justify-between gap-spacing-8 text-xs font-medium">
                            <span className="text-neutral-60 dark:text-neutral-25">Adoption Health (Insertions vs Detachments)</span>
@@ -627,9 +626,8 @@ const App: React.FC = () => {
                            </span>
                          </div>
                        </div>
-                     </div>
-                     <div>
-                       <h4 className={sectionTitleClass}>Activity (30d)</h4>
+                     </CollapsibleSection>
+                     <CollapsibleSection title="Activity (30d)" titleClassName={sectionTitleClass}>
                        <div className="grid grid-cols-1 gap-spacing-12 sm:grid-cols-2">
                          <div className="rounded-sm border border-brand-redTint/30 bg-brand-redTint/10 p-spacing-12 dark:bg-brand-redTint/20">
                            <div className="text-xs uppercase tracking-wide text-brand-red dark:text-neutral-5">Insertions (30d)</div>
@@ -640,9 +638,8 @@ const App: React.FC = () => {
                            <div className="mt-spacing-4 text-xl font-light text-secondary-turquoise dark:text-secondary-aquaBlue">{data.figma.componentDetachmentsLast30Days.toLocaleString()}</div>
                          </div>
                        </div>
-                     </div>
-                     <div>
-                       <h4 className={sectionTitleClass}>Most Detached Components (30d)</h4>
+                     </CollapsibleSection>
+                     <CollapsibleSection title="Most Detached Components (30d)" titleClassName={sectionTitleClass}>
                        {data.figma.topDetachedComponents.length > 0 ? (
                          <ul className="space-y-spacing-12">
                            {data.figma.topDetachedComponents.map((item) => (
@@ -659,9 +656,8 @@ const App: React.FC = () => {
                        ) : (
                          <div className="text-xs text-neutral-60 dark:text-neutral-25">No component detachment data available for the selected period.</div>
                        )}
-                     </div>
-                     <div>
-                       <h4 className={sectionTitleClass}>Top library consuming teams</h4>
+                     </CollapsibleSection>
+                     <CollapsibleSection title="Top library consuming teams" titleClassName={sectionTitleClass}>
                        {data.figma.topLibraryConsumingTeams.length > 0 ? (
                          <ul className="space-y-spacing-12">
                            {data.figma.topLibraryConsumingTeams.map((item) => (
@@ -678,9 +674,8 @@ const App: React.FC = () => {
                        ) : (
                          <div className="text-xs text-neutral-60 dark:text-neutral-25">No team usage data available for the selected period.</div>
                        )}
-                     </div>
-                     <div>
-                       <h4 className={sectionTitleClass}>Top Components by Usage</h4>
+                     </CollapsibleSection>
+                     <CollapsibleSection title="Top Components by Usage" titleClassName={sectionTitleClass}>
                        {data.figma.topComponentUsage.length > 0 ? (
                          <ul className="space-y-spacing-12">
                            {data.figma.topComponentUsage.map((item) => (
@@ -697,7 +692,7 @@ const App: React.FC = () => {
                        ) : (
                          <div className="text-xs text-neutral-60 dark:text-neutral-25">No usage data available for the selected period.</div>
                        )}
-                     </div>
+                     </CollapsibleSection>
                    </div>
                  </>
                ) : (
@@ -724,8 +719,7 @@ const App: React.FC = () => {
             className="h-full"
           >
             <div className={hasExpandedCardLayout ? 'space-y-spacing-16 xl:grid xl:grid-cols-2 xl:items-start xl:gap-spacing-24 xl:space-y-0' : 'space-y-spacing-16'}>
-              <div>
-                <h4 className={sectionTitleClass}>External Adoption</h4>
+              <CollapsibleSection title="External Adoption" titleClassName={sectionTitleClass}>
                 <div className={`mb-spacing-12 rounded-tokenFull border px-spacing-12 py-spacing-4 text-[11px] font-semibold uppercase tracking-wide ${githubSourceClassName}`}>
                   Source: {data.github.source === 'mock' ? 'Mock Data' : 'Live GitHub API'}
                 </div>
@@ -755,9 +749,8 @@ const App: React.FC = () => {
                     </div>
                   </div>
                 </div>
-              </div>
-              <div>
-                <h4 className={sectionTitleClass}>Repo Traffic (14d)</h4>
+              </CollapsibleSection>
+              <CollapsibleSection title="Repo Traffic (14d)" titleClassName={sectionTitleClass}>
                 <div className="grid grid-cols-1 gap-spacing-12 sm:grid-cols-2">
                   <div className="rounded-sm border border-brand-redTint/30 bg-brand-redTint/10 p-spacing-12 dark:bg-brand-redTint/20">
                     <div className="text-xs uppercase tracking-wide text-brand-red dark:text-neutral-5">Views (14d)</div>
@@ -778,9 +771,8 @@ const App: React.FC = () => {
                   <div className="text-[10px] uppercase tracking-wide text-neutral-60 dark:text-neutral-25">Unique Visitors (14d)</div>
                   <div className="mt-spacing-4 text-lg font-light text-semantic-textNeutral dark:text-neutral-5">{data.github.uniqueVisitors14d.toLocaleString()}</div>
                 </div>
-              </div>
-              <div>
-                <h4 className={sectionTitleClass}>Issue & PR Health</h4>
+              </CollapsibleSection>
+              <CollapsibleSection title="Issue & PR Health" titleClassName={sectionTitleClass}>
                 <div className="grid grid-cols-1 gap-spacing-12 sm:grid-cols-3">
                   <div className="rounded-sm border border-semantic-borderSubtle bg-neutral-5 p-spacing-12 dark:border-neutral-50/70 dark:bg-neutral-95">
                     <div className="text-[10px] uppercase tracking-wide text-neutral-60 dark:text-neutral-25">Open Bugs</div>
@@ -823,9 +815,8 @@ const App: React.FC = () => {
                     <div className="mt-spacing-4 text-lg font-light text-semantic-textNeutral dark:text-neutral-5">{data.github.medianTimeToMergeHours}h</div>
                   </div>
                 </div>
-              </div>
-              <div>
-                <h4 className={sectionTitleClass}>Top Consuming Repositories</h4>
+              </CollapsibleSection>
+              <CollapsibleSection title="Top Consuming Repositories" titleClassName={sectionTitleClass}>
                 <ul className="space-y-spacing-12">
                   {data.github.topConsumingRepos.map((item) => (
                     <li key={item.repo}>
@@ -838,9 +829,8 @@ const App: React.FC = () => {
                     </li>
                   ))}
                 </ul>
-              </div>
-              <div>
-                <h4 className={sectionTitleClass}>Top Imported Components</h4>
+              </CollapsibleSection>
+              <CollapsibleSection title="Top Imported Components" titleClassName={sectionTitleClass}>
                 <ul className="space-y-spacing-12">
                   {data.github.topImportedComponents.map((item) => (
                     <li key={item.componentName}>
@@ -853,7 +843,7 @@ const App: React.FC = () => {
                     </li>
                   ))}
                 </ul>
-              </div>
+              </CollapsibleSection>
             </div>
           </KpiCard>
           </div>
@@ -870,8 +860,7 @@ const App: React.FC = () => {
             className="h-full"
           >
             <div className={hasExpandedCardLayout ? 'space-y-spacing-16 xl:grid xl:grid-cols-2 xl:items-start xl:gap-spacing-24 xl:space-y-0' : 'space-y-spacing-16'}>
-              <div>
-                <h4 className={sectionTitleClass}>Content Footprint</h4>
+              <CollapsibleSection title="Content Footprint" titleClassName={sectionTitleClass}>
                 <div className="overflow-hidden rounded-sm border border-semantic-borderSubtle dark:border-neutral-50/70">
                   <div className="bg-neutral-5 p-spacing-12 text-left dark:bg-neutral-95">
                     <div className="text-4xl font-light text-neutral-95 dark:text-neutral-5">
@@ -898,9 +887,8 @@ const App: React.FC = () => {
                     </div>
                   </div>
                 </div>
-              </div>
-              <div>
-                <h4 className={sectionTitleClass}>Publishing Health</h4>
+              </CollapsibleSection>
+              <CollapsibleSection title="Publishing Health" titleClassName={sectionTitleClass}>
                 <div className="space-y-spacing-8">
                   <div className="flex justify-between gap-spacing-8 text-xs font-medium">
                     <span className="text-neutral-60 dark:text-neutral-25">Published vs Draft</span>
@@ -927,9 +915,8 @@ const App: React.FC = () => {
                     </span>
                   </div>
                 </div>
-              </div>
-              <div>
-                <h4 className={sectionTitleClass}>Activity</h4>
+              </CollapsibleSection>
+              <CollapsibleSection title="Activity" titleClassName={sectionTitleClass}>
                 <div className="grid grid-cols-1 gap-spacing-12 sm:grid-cols-2">
                   <div className="rounded-sm border border-brand-redTint/30 bg-brand-redTint/10 p-spacing-12 dark:bg-brand-redTint/20">
                     <div className="text-xs uppercase tracking-wide text-brand-red dark:text-neutral-5">Published (30d)</div>
@@ -953,9 +940,8 @@ const App: React.FC = () => {
                     <div className="mt-spacing-4 text-lg font-light text-secondary-turquoise dark:text-secondary-aquaBlue">{data.contentful.scheduledEntriesNext30Days}</div>
                   </div>
                 </div>
-              </div>
-              <div>
-                <h4 className={sectionTitleClass}>Asset Types</h4>
+              </CollapsibleSection>
+              <CollapsibleSection title="Asset Types" titleClassName={sectionTitleClass}>
                 {data.contentful.assetTypeDistribution.length > 0 ? (
                   <ul className="space-y-spacing-12">
                     {data.contentful.assetTypeDistribution.map((item) => (
@@ -976,11 +962,10 @@ const App: React.FC = () => {
                       : 'No asset type data available.'}
                   </div>
                 )}
-              </div>
-              <div>
+              </CollapsibleSection>
+              <CollapsibleSection title="Distribution" titleClassName={sectionTitleClass}>
                 <div>
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-neutral-60 dark:text-neutral-25">Distribution</h4>
-                  <div className="mt-spacing-8 mb-spacing-12 flex w-full rounded-tokenFull border border-semantic-borderSubtle bg-semantic-backgroundNeutral p-[2px] dark:border-neutral-50/70 dark:bg-neutral-95">
+                  <div className="mb-spacing-12 flex w-full rounded-tokenFull border border-semantic-borderSubtle bg-semantic-backgroundNeutral p-[2px] dark:border-neutral-50/70 dark:bg-neutral-95">
                       <button
                         type="button"
                         onClick={() => setContentDistributionMode('contentType')}
@@ -1080,7 +1065,7 @@ const App: React.FC = () => {
                     </div>
                   )
                 )}
-              </div>
+              </CollapsibleSection>
             </div>
           </KpiCard>
           </div>
