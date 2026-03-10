@@ -286,6 +286,9 @@ const App: React.FC = () => {
   const isFiltered = !areAllPillarsVisible && activePillars.length < pillarOrder.length;
   const isPillarActive = (pillar: Pillar) => areAllPillarsVisible || activePillars.includes(pillar);
   const visiblePillars = pillarOrder.filter((pillar) => isPillarActive(pillar));
+  const isSingleCardView = visiblePillars.length === 1;
+  const isTwoCardView = visiblePillars.length === 2;
+  const hasExpandedCardLayout = visiblePillars.length <= 2;
   const sectionTitleClass = 'mb-spacing-8 text-xs font-bold uppercase tracking-wider text-neutral-60 dark:text-neutral-25';
   const timeSpanOptions: TimeSpan[] = ['30d', '90d', '365d'];
   const timeSpanLabelByKey: Record<TimeSpan, string> = {
@@ -359,16 +362,13 @@ const App: React.FC = () => {
     });
   };
 
-  const getCardLayoutClass = (pillar: Pillar): string => {
-    if (visiblePillars.length === 1) {
-      return 'w-full lg:col-span-2 lg:col-start-3';
+  const getCardLayoutClass = (): string => {
+    if (isSingleCardView) {
+      return 'w-full lg:col-span-6';
     }
 
-    if (visiblePillars.length === 2) {
-      const visibleIndex = visiblePillars.indexOf(pillar);
-      return visibleIndex === 0
-        ? 'w-full lg:col-span-2 lg:col-start-2'
-        : 'w-full lg:col-span-2 lg:col-start-4';
+    if (isTwoCardView) {
+      return 'w-full lg:col-span-3';
     }
 
     return 'w-full lg:col-span-2';
@@ -527,7 +527,7 @@ const App: React.FC = () => {
               {visiblePillars.map((pillar) => (
                 <div
                   key={pillar}
-                  className={`${getCardLayoutClass(pillar)} rounded-sm border border-semantic-borderSubtle bg-neutral-5/60 p-spacing-16 dark:border-neutral-50/70 dark:bg-neutral-95/70`}
+                  className={`${getCardLayoutClass()} rounded-sm border border-semantic-borderSubtle bg-neutral-5/60 p-spacing-16 dark:border-neutral-50/70 dark:bg-neutral-95/70`}
                 >
                   <div className="mb-spacing-12 flex items-center gap-spacing-8">
                     <span className={`inline-block h-spacing-8 w-spacing-8 rounded-tokenFull ${pillarAccentClassByKey[pillar]}`} />
@@ -553,133 +553,150 @@ const App: React.FC = () => {
           
           {/* 1. FIGMA */}
           {isPillarActive('design') && (
-          <div className={getCardLayoutClass('design')}>
+          <div className={getCardLayoutClass()}>
             <KpiCard
               title="DESIGN"
               icon={<FigmaMonochromeIcon />}
               hideOutline
               accentClassName="bg-brand-vodafone dark:bg-brand-redTint"
+              className="h-full"
             >
                {data.figma ? (
                  <>
-                   <h4 className={sectionTitleClass}>Library Footprint</h4>
-                   <div className="overflow-hidden rounded-sm border border-semantic-borderSubtle dark:border-neutral-50/70">
-                     <div className="bg-neutral-5 p-spacing-12 text-left dark:bg-neutral-95">
-                       <div className="text-4xl font-light text-neutral-95 dark:text-neutral-5">
-                         {data.figma.filesCount.toLocaleString()}
+                   <div className={hasExpandedCardLayout ? 'xl:grid xl:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] xl:gap-spacing-24' : 'space-y-spacing-16'}>
+                     <div className="space-y-spacing-16">
+                       <div>
+                         <h4 className={sectionTitleClass}>Library Footprint</h4>
+                         <div className="overflow-hidden rounded-sm border border-semantic-borderSubtle dark:border-neutral-50/70">
+                           <div className="bg-neutral-5 p-spacing-12 text-left dark:bg-neutral-95">
+                             <div className="text-4xl font-light text-neutral-95 dark:text-neutral-5">
+                               {data.figma.filesCount.toLocaleString()}
+                             </div>
+                             <div className="mt-spacing-4 text-[10px] font-bold uppercase tracking-wider text-semantic-textNeutral dark:text-neutral-25">
+                               Figma Files Using brix/react Components
+                             </div>
+                           </div>
+                           <div className="border-t border-brand-redTint/40 bg-brand-redTint/10 p-spacing-12 text-left dark:border-brand-redTint/50 dark:bg-brand-redTint/20">
+                             <div className="text-4xl font-light text-brand-red dark:text-neutral-5">
+                               {data.figma.totalComponentUsages.toLocaleString()}
+                             </div>
+                             <div className="mt-spacing-4 text-[10px] font-bold uppercase tracking-wider text-brand-red dark:text-neutral-5">
+                               Total Component Usages
+                             </div>
+                           </div>
+                           <div className="border-t border-secondary-aquaBlue/30 bg-secondary-aquaBlue/10 p-spacing-12 text-left dark:border-secondary-aquaBlue/40 dark:bg-secondary-aquaBlue/20">
+                             <div className="text-4xl font-light text-secondary-turquoise dark:text-secondary-aquaBlue">
+                               {data.figma.teamsUsingLibrary.toLocaleString()}
+                             </div>
+                             <div className="mt-spacing-4 text-[10px] font-bold uppercase tracking-wider text-secondary-aquaBlue dark:text-neutral-5">
+                               Teams Using This Library
+                             </div>
+                           </div>
+                         </div>
                        </div>
-                       <div className="mt-spacing-4 text-[10px] font-bold uppercase tracking-wider text-semantic-textNeutral dark:text-neutral-25">
-                         Figma Files Using brix/react Components
+                       <div>
+                         <h4 className={sectionTitleClass}>Adoption Health</h4>
+                         <div className="space-y-spacing-8">
+                           <div className="flex justify-between gap-spacing-8 text-xs font-medium">
+                             <span className="text-neutral-60 dark:text-neutral-25">Adoption Health (Insertions vs Detachments)</span>
+                             <span className="font-light text-semantic-textNeutral dark:text-neutral-5">{figmaInsertionsPercentage}% Insertions</span>
+                           </div>
+                           <div className="h-spacing-8 w-full overflow-hidden rounded-tokenFull bg-neutral-25 dark:bg-neutral-85">
+                             <div className="flex h-full w-full">
+                               <div
+                                 className="h-full bg-brand-vodafone transition-all duration-1000 ease-out dark:bg-brand-redTint"
+                                 style={{ width: `${figmaInsertionsPercentage}%` }}
+                               />
+                               <div
+                                 className="h-full bg-secondary-aquaBlue transition-all duration-1000 ease-out dark:bg-secondary-aquaBlueTint"
+                                 style={{ width: `${figmaDetachmentsPercentage}%` }}
+                               />
+                             </div>
+                           </div>
+                           <div className="flex flex-wrap items-center justify-between gap-spacing-8 text-[11px] font-medium">
+                             <span className="text-brand-vodafone dark:text-brand-redTint">
+                               Insertions: {figmaInsertions.toLocaleString()} ({figmaInsertionsPercentage}%)
+                             </span>
+                             <span className="text-secondary-aquaBlue dark:text-secondary-aquaBlueTint">
+                               Detachments: {figmaDetachments.toLocaleString()} ({figmaDetachmentsPercentage}%)
+                             </span>
+                           </div>
+                         </div>
+                       </div>
+                       <div>
+                         <h4 className={sectionTitleClass}>Activity (30d)</h4>
+                         <div className="grid grid-cols-1 gap-spacing-12 sm:grid-cols-2">
+                           <div className="rounded-sm border border-brand-redTint/30 bg-brand-redTint/10 p-spacing-12 dark:bg-brand-redTint/20">
+                             <div className="text-xs uppercase tracking-wide text-brand-red dark:text-neutral-5">Insertions (30d)</div>
+                             <div className="mt-spacing-4 text-xl font-light text-brand-vodafone dark:text-brand-redTint">{data.figma.componentInsertionsLast30Days.toLocaleString()}</div>
+                           </div>
+                           <div className="rounded-sm border border-secondary-aquaBlue/30 bg-secondary-aquaBlue/10 p-spacing-12 dark:bg-secondary-aquaBlue/20">
+                             <div className="text-xs uppercase tracking-wide text-secondary-aquaBlue dark:text-neutral-5">Detachments (30d)</div>
+                             <div className="mt-spacing-4 text-xl font-light text-secondary-turquoise dark:text-secondary-aquaBlue">{data.figma.componentDetachmentsLast30Days.toLocaleString()}</div>
+                           </div>
+                         </div>
                        </div>
                      </div>
-                     <div className="border-t border-brand-redTint/40 bg-brand-redTint/10 p-spacing-12 text-left dark:border-brand-redTint/50 dark:bg-brand-redTint/20">
-                       <div className="text-4xl font-light text-brand-red dark:text-neutral-5">
-                         {data.figma.totalComponentUsages.toLocaleString()}
+                     <div className="space-y-spacing-16">
+                       <div>
+                         <h4 className={sectionTitleClass}>Most Detached Components (30d)</h4>
+                         {data.figma.topDetachedComponents.length > 0 ? (
+                           <ul className="space-y-spacing-12">
+                             {data.figma.topDetachedComponents.map((item) => (
+                               <li key={item.componentName}>
+                                 <ProgressBar
+                                   label={item.componentName}
+                                   value={item.detachments}
+                                   max={maxFigmaDetachedComponentCount}
+                                   color="bg-secondary-aquaBlue dark:bg-secondary-aquaBlueTint"
+                                 />
+                               </li>
+                             ))}
+                           </ul>
+                         ) : (
+                           <div className="text-xs text-neutral-60 dark:text-neutral-25">No component detachment data available for the selected period.</div>
+                         )}
                        </div>
-                       <div className="mt-spacing-4 text-[10px] font-bold uppercase tracking-wider text-brand-red dark:text-neutral-5">
-                         Total Component Usages
+                       <div>
+                         <h4 className={sectionTitleClass}>Top library consuming teams</h4>
+                         {data.figma.topLibraryConsumingTeams.length > 0 ? (
+                           <ul className="space-y-spacing-12">
+                             {data.figma.topLibraryConsumingTeams.map((item) => (
+                               <li key={item.teamName}>
+                                 <ProgressBar
+                                   label={item.teamName}
+                                   value={item.usages}
+                                   max={maxFigmaTeamUsage}
+                                   color="bg-secondary-turquoise dark:bg-secondary-turquoiseTint"
+                                 />
+                               </li>
+                             ))}
+                           </ul>
+                         ) : (
+                           <div className="text-xs text-neutral-60 dark:text-neutral-25">No team usage data available for the selected period.</div>
+                         )}
                        </div>
-                     </div>
-                     <div className="border-t border-secondary-aquaBlue/30 bg-secondary-aquaBlue/10 p-spacing-12 text-left dark:border-secondary-aquaBlue/40 dark:bg-secondary-aquaBlue/20">
-                       <div className="text-4xl font-light text-secondary-turquoise dark:text-secondary-aquaBlue">
-                         {data.figma.teamsUsingLibrary.toLocaleString()}
-                       </div>
-                       <div className="mt-spacing-4 text-[10px] font-bold uppercase tracking-wider text-secondary-aquaBlue dark:text-neutral-5">
-                         Teams Using This Library
+                       <div>
+                         <h4 className={sectionTitleClass}>Top Components by Usage</h4>
+                         {data.figma.topComponentUsage.length > 0 ? (
+                           <ul className="space-y-spacing-12">
+                             {data.figma.topComponentUsage.map((item) => (
+                               <li key={item.componentName}>
+                                 <ProgressBar
+                                   label={item.componentName}
+                                   value={item.usages}
+                                   max={maxFigmaComponentUsage}
+                                   color="bg-secondary-aquaBlue dark:bg-secondary-aquaBlueTint"
+                                 />
+                               </li>
+                             ))}
+                           </ul>
+                         ) : (
+                           <div className="text-xs text-neutral-60 dark:text-neutral-25">No usage data available for the selected period.</div>
+                         )}
                        </div>
                      </div>
                    </div>
-                   <div className="my-spacing-16 h-px bg-semantic-borderSubtle/50 dark:bg-neutral-50/50"></div>
-                   <h4 className={sectionTitleClass}>Adoption Health</h4>
-                   <div className="space-y-spacing-8">
-                     <div className="flex justify-between text-xs font-medium">
-                       <span className="text-neutral-60 dark:text-neutral-25">Adoption Health (Insertions vs Detachments)</span>
-                       <span className="font-light text-semantic-textNeutral dark:text-neutral-5">{figmaInsertionsPercentage}% Insertions</span>
-                     </div>
-                     <div className="h-spacing-8 w-full overflow-hidden rounded-tokenFull bg-neutral-25 dark:bg-neutral-85">
-                       <div className="flex h-full w-full">
-                         <div
-                           className="h-full bg-brand-vodafone transition-all duration-1000 ease-out dark:bg-brand-redTint"
-                           style={{ width: `${figmaInsertionsPercentage}%` }}
-                         />
-                         <div
-                           className="h-full bg-secondary-aquaBlue transition-all duration-1000 ease-out dark:bg-secondary-aquaBlueTint"
-                           style={{ width: `${figmaDetachmentsPercentage}%` }}
-                         />
-                       </div>
-                     </div>
-                     <div className="flex flex-wrap items-center justify-between gap-spacing-8 text-[11px] font-medium">
-                       <span className="text-brand-vodafone dark:text-brand-redTint">
-                         Insertions: {figmaInsertions.toLocaleString()} ({figmaInsertionsPercentage}%)
-                       </span>
-                       <span className="text-secondary-aquaBlue dark:text-secondary-aquaBlueTint">
-                         Detachments: {figmaDetachments.toLocaleString()} ({figmaDetachmentsPercentage}%)
-                       </span>
-                     </div>
-                   </div>
-                   <h4 className={sectionTitleClass}>Activity (30d)</h4>
-                   <div className="grid grid-cols-2 gap-spacing-12">
-                     <div className="rounded-sm border border-brand-redTint/30 bg-brand-redTint/10 p-spacing-12 dark:bg-brand-redTint/20">
-                       <div className="text-xs uppercase tracking-wide text-brand-red dark:text-neutral-5">Insertions (30d)</div>
-                       <div className="mt-spacing-4 text-xl font-light text-brand-vodafone dark:text-brand-redTint">{data.figma.componentInsertionsLast30Days.toLocaleString()}</div>
-                     </div>
-                     <div className="rounded-sm border border-secondary-aquaBlue/30 bg-secondary-aquaBlue/10 p-spacing-12 dark:bg-secondary-aquaBlue/20">
-                       <div className="text-xs uppercase tracking-wide text-secondary-aquaBlue dark:text-neutral-5">Detachments (30d)</div>
-                       <div className="mt-spacing-4 text-xl font-light text-secondary-turquoise dark:text-secondary-aquaBlue">{data.figma.componentDetachmentsLast30Days.toLocaleString()}</div>
-                     </div>
-                   </div>
-                   <h4 className={`${sectionTitleClass} mt-spacing-16`}>Most Detached Components (30d)</h4>
-                   {data.figma.topDetachedComponents.length > 0 ? (
-                     <ul className="space-y-spacing-12">
-                       {data.figma.topDetachedComponents.map((item) => (
-                         <li key={item.componentName}>
-                           <ProgressBar
-                             label={item.componentName}
-                             value={item.detachments}
-                             max={maxFigmaDetachedComponentCount}
-                             color="bg-secondary-aquaBlue dark:bg-secondary-aquaBlueTint"
-                           />
-                         </li>
-                       ))}
-                     </ul>
-                   ) : (
-                     <div className="text-xs text-neutral-60 dark:text-neutral-25">No component detachment data available for the selected period.</div>
-                   )}
-                   <div className="my-spacing-16 h-px bg-semantic-borderSubtle/50 dark:bg-neutral-50/50"></div>
-                   <h4 className={sectionTitleClass}>Top library consuming teams</h4>
-                   {data.figma.topLibraryConsumingTeams.length > 0 ? (
-                     <ul className="space-y-spacing-12">
-                       {data.figma.topLibraryConsumingTeams.map((item) => (
-                         <li key={item.teamName}>
-                           <ProgressBar
-                             label={item.teamName}
-                             value={item.usages}
-                             max={maxFigmaTeamUsage}
-                             color="bg-secondary-turquoise dark:bg-secondary-turquoiseTint"
-                           />
-                         </li>
-                       ))}
-                     </ul>
-                   ) : (
-                     <div className="text-xs text-neutral-60 dark:text-neutral-25">No team usage data available for the selected period.</div>
-                   )}
-                   <h4 className={`${sectionTitleClass} mt-spacing-4`}>Top Components by Usage</h4>
-                   {data.figma.topComponentUsage.length > 0 ? (
-                     <ul className="space-y-spacing-12">
-                       {data.figma.topComponentUsage.map((item) => (
-                         <li key={item.componentName}>
-                           <ProgressBar
-                             label={item.componentName}
-                             value={item.usages}
-                             max={maxFigmaComponentUsage}
-                             color="bg-secondary-aquaBlue dark:bg-secondary-aquaBlueTint"
-                           />
-                         </li>
-                       ))}
-                     </ul>
-                   ) : (
-                     <div className="text-xs text-neutral-60 dark:text-neutral-25">No usage data available for the selected period.</div>
-                   )}
                  </>
                ) : (
                  <div className="rounded-sm border border-semantic-borderSubtle bg-neutral-5 p-spacing-16 text-sm text-neutral-60 dark:border-neutral-50/70 dark:bg-neutral-95 dark:text-neutral-25">
@@ -696,298 +713,326 @@ const App: React.FC = () => {
 
           {/* 2. GITHUB / REACT COMPONENTS */}
           {isPillarActive('code') && (
-          <div className={getCardLayoutClass('code')}>
+          <div className={getCardLayoutClass()}>
           <KpiCard
             title="CODE"
             icon={<GitHubMonochromeIcon />}
             hideOutline
             accentClassName="bg-brand-vodafone dark:bg-brand-redTint"
+            className="h-full"
           >
-            <h4 className={sectionTitleClass}>External Adoption</h4>
-            <div className={`rounded-tokenFull border px-spacing-12 py-spacing-4 text-[11px] font-semibold uppercase tracking-wide ${githubSourceClassName}`}>
-              Source: {data.github.source === 'mock' ? 'Mock Data' : 'Live GitHub API'}
+            <div className={hasExpandedCardLayout ? 'xl:grid xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] xl:gap-spacing-24' : 'space-y-spacing-16'}>
+              <div className="space-y-spacing-16">
+                <div>
+                  <h4 className={sectionTitleClass}>External Adoption</h4>
+                  <div className={`mb-spacing-12 rounded-tokenFull border px-spacing-12 py-spacing-4 text-[11px] font-semibold uppercase tracking-wide ${githubSourceClassName}`}>
+                    Source: {data.github.source === 'mock' ? 'Mock Data' : 'Live GitHub API'}
+                  </div>
+                  <div className="overflow-hidden rounded-sm border border-semantic-borderSubtle dark:border-neutral-50/70">
+                    <div className="bg-neutral-5 p-spacing-12 text-left dark:bg-neutral-95">
+                      <div className="text-4xl font-light text-neutral-95 dark:text-neutral-5">
+                        {data.github.consumingRepos30d.toLocaleString()}
+                      </div>
+                      <div className="mt-spacing-4 text-[10px] font-bold uppercase tracking-wider text-semantic-textNeutral dark:text-neutral-25">
+                        Consuming Repos (30d)
+                      </div>
+                    </div>
+                    <div className="border-t border-brand-redTint/40 bg-brand-redTint/10 p-spacing-12 text-left dark:border-brand-redTint/50 dark:bg-brand-redTint/20">
+                      <div className="text-4xl font-light text-brand-red dark:text-neutral-5">
+                        {data.github.newConsumingRepos30d.toLocaleString()}
+                      </div>
+                      <div className="mt-spacing-4 text-[10px] font-bold uppercase tracking-wider text-brand-red dark:text-neutral-5">
+                        New Consuming Repos (30d)
+                      </div>
+                    </div>
+                    <div className="border-t border-secondary-aquaBlue/30 bg-secondary-aquaBlue/10 p-spacing-12 text-left dark:border-secondary-aquaBlue/40 dark:bg-secondary-aquaBlue/20">
+                      <div className="text-4xl font-light text-secondary-turquoise dark:text-secondary-aquaBlue">
+                        {data.github.organization}
+                      </div>
+                      <div className="mt-spacing-4 text-[10px] font-bold uppercase tracking-wider text-secondary-aquaBlue dark:text-neutral-5">
+                        Organization Scope
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <h4 className={sectionTitleClass}>Repo Traffic (14d)</h4>
+                  <div className="grid grid-cols-1 gap-spacing-12 sm:grid-cols-2">
+                    <div className="rounded-sm border border-brand-redTint/30 bg-brand-redTint/10 p-spacing-12 dark:bg-brand-redTint/20">
+                      <div className="text-xs uppercase tracking-wide text-brand-red dark:text-neutral-5">Views (14d)</div>
+                      <div className="mt-spacing-4 text-xl font-light text-brand-vodafone dark:text-brand-redTint">{data.github.repoViews14d.toLocaleString()}</div>
+                      <div className={`mt-spacing-4 text-[10px] font-semibold uppercase tracking-wide ${repoViewsDeltaClassName}`}>
+                        vs prev 14d {formatDelta(data.github.repoViews14dDelta)}
+                      </div>
+                    </div>
+                    <div className="rounded-sm border border-secondary-aquaBlue/30 bg-secondary-aquaBlue/10 p-spacing-12 dark:bg-secondary-aquaBlue/20">
+                      <div className="text-xs uppercase tracking-wide text-secondary-aquaBlue dark:text-neutral-5">Clones (14d)</div>
+                      <div className="mt-spacing-4 text-xl font-light text-secondary-turquoise dark:text-secondary-aquaBlue">{data.github.repoClones14d.toLocaleString()}</div>
+                      <div className="mt-spacing-4 text-[10px] font-semibold uppercase tracking-wide text-secondary-aquaBlue dark:text-neutral-5">
+                        Unique cloners {data.github.uniqueCloners14d.toLocaleString()}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mt-spacing-12 rounded-sm border border-semantic-borderSubtle bg-neutral-5 p-spacing-12 dark:border-neutral-50/70 dark:bg-neutral-95">
+                    <div className="text-[10px] uppercase tracking-wide text-neutral-60 dark:text-neutral-25">Unique Visitors (14d)</div>
+                    <div className="mt-spacing-4 text-lg font-light text-semantic-textNeutral dark:text-neutral-5">{data.github.uniqueVisitors14d.toLocaleString()}</div>
+                  </div>
+                </div>
+                <div>
+                  <h4 className={sectionTitleClass}>Issue & PR Health</h4>
+                  <div className="grid grid-cols-1 gap-spacing-12 sm:grid-cols-3">
+                    <div className="rounded-sm border border-semantic-borderSubtle bg-neutral-5 p-spacing-12 dark:border-neutral-50/70 dark:bg-neutral-95">
+                      <div className="text-[10px] uppercase tracking-wide text-neutral-60 dark:text-neutral-25">Open Bugs</div>
+                      <div className="mt-spacing-4 text-lg font-light text-semantic-textNeutral dark:text-neutral-5">{data.github.openBugs}</div>
+                    </div>
+                    <div className="rounded-sm border border-brand-redTint/30 bg-brand-redTint/10 p-spacing-12 dark:bg-brand-redTint/20">
+                      <div className="text-[10px] uppercase tracking-wide text-brand-red dark:text-neutral-5">Critical Bugs</div>
+                      <div className="mt-spacing-4 text-lg font-light text-brand-vodafone dark:text-brand-redTint">{data.github.openCriticalBugs}</div>
+                    </div>
+                    <div className="rounded-sm border border-semantic-borderSubtle bg-neutral-5 p-spacing-12 dark:border-neutral-50/70 dark:bg-neutral-95">
+                      <div className="text-[10px] uppercase tracking-wide text-neutral-60 dark:text-neutral-25">Median Bug Age</div>
+                      <div className="mt-spacing-4 text-lg font-light text-semantic-textNeutral dark:text-neutral-5">{data.github.medianBugAgeDays}d</div>
+                    </div>
+                  </div>
+                  <div className="mt-spacing-12 grid grid-cols-1 gap-spacing-12 sm:grid-cols-2">
+                    <div className="rounded-sm border border-secondary-aquaBlue/30 bg-secondary-aquaBlue/10 p-spacing-12 dark:bg-secondary-aquaBlue/20">
+                      <div className="text-[10px] uppercase tracking-wide text-secondary-aquaBlue dark:text-neutral-5">Bugs Opened vs Closed (7d)</div>
+                      <div className="mt-spacing-4 text-lg font-light text-secondary-turquoise dark:text-secondary-aquaBlue">
+                        {data.github.bugsOpened7d} / {data.github.bugsClosed7d}
+                      </div>
+                    </div>
+                    <div className="rounded-sm border border-semantic-borderSubtle bg-neutral-5 p-spacing-12 dark:border-neutral-50/70 dark:bg-neutral-95">
+                      <div className="text-[10px] uppercase tracking-wide text-neutral-60 dark:text-neutral-25">Open PRs / Older than 7d</div>
+                      <div className="mt-spacing-4 text-lg font-light text-semantic-textNeutral dark:text-neutral-5">
+                        {data.github.openPRs} / {data.github.openPROlderThan7d}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mt-spacing-12 grid grid-cols-1 gap-spacing-12 sm:grid-cols-3">
+                    <div className="rounded-sm border border-semantic-borderSubtle bg-neutral-5 p-spacing-12 dark:border-neutral-50/70 dark:bg-neutral-95">
+                      <div className="text-[10px] uppercase tracking-wide text-neutral-60 dark:text-neutral-25">Merged PRs (7d)</div>
+                      <div className="mt-spacing-4 text-lg font-light text-semantic-textNeutral dark:text-neutral-5">{data.github.mergedPRs7d}</div>
+                    </div>
+                    <div className="rounded-sm border border-semantic-borderSubtle bg-neutral-5 p-spacing-12 dark:border-neutral-50/70 dark:bg-neutral-95">
+                      <div className="text-[10px] uppercase tracking-wide text-neutral-60 dark:text-neutral-25">First Review (Median)</div>
+                      <div className="mt-spacing-4 text-lg font-light text-semantic-textNeutral dark:text-neutral-5">{data.github.medianTimeToFirstReviewHours}h</div>
+                    </div>
+                    <div className="rounded-sm border border-semantic-borderSubtle bg-neutral-5 p-spacing-12 dark:border-neutral-50/70 dark:bg-neutral-95">
+                      <div className="text-[10px] uppercase tracking-wide text-neutral-60 dark:text-neutral-25">Time to Merge (Median)</div>
+                      <div className="mt-spacing-4 text-lg font-light text-semantic-textNeutral dark:text-neutral-5">{data.github.medianTimeToMergeHours}h</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="space-y-spacing-16">
+                <div>
+                  <h4 className={sectionTitleClass}>Top Consuming Repositories</h4>
+                  <ul className="space-y-spacing-12">
+                    {data.github.topConsumingRepos.map((item) => (
+                      <li key={item.repo}>
+                        <ProgressBar
+                          label={item.repo}
+                          value={item.imports}
+                          max={maxGithubRepoUsage}
+                          color="bg-secondary-turquoise dark:bg-secondary-turquoiseTint"
+                        />
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <div>
+                  <h4 className={sectionTitleClass}>Top Imported Components</h4>
+                  <ul className="space-y-spacing-12">
+                    {data.github.topImportedComponents.map((item) => (
+                      <li key={item.componentName}>
+                        <ProgressBar
+                          label={item.componentName}
+                          value={item.count}
+                          max={maxGithubComponentUsage}
+                          color="bg-secondary-aquaBlue dark:bg-secondary-aquaBlueTint"
+                        />
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
             </div>
-            <div className="overflow-hidden rounded-sm border border-semantic-borderSubtle dark:border-neutral-50/70">
-              <div className="bg-neutral-5 p-spacing-12 text-left dark:bg-neutral-95">
-                <div className="text-4xl font-light text-neutral-95 dark:text-neutral-5">
-                  {data.github.consumingRepos30d.toLocaleString()}
-                </div>
-                <div className="mt-spacing-4 text-[10px] font-bold uppercase tracking-wider text-semantic-textNeutral dark:text-neutral-25">
-                  Consuming Repos (30d)
-                </div>
-              </div>
-              <div className="border-t border-brand-redTint/40 bg-brand-redTint/10 p-spacing-12 text-left dark:border-brand-redTint/50 dark:bg-brand-redTint/20">
-                <div className="text-4xl font-light text-brand-red dark:text-neutral-5">
-                  {data.github.newConsumingRepos30d.toLocaleString()}
-                </div>
-                <div className="mt-spacing-4 text-[10px] font-bold uppercase tracking-wider text-brand-red dark:text-neutral-5">
-                  New Consuming Repos (30d)
-                </div>
-              </div>
-              <div className="border-t border-secondary-aquaBlue/30 bg-secondary-aquaBlue/10 p-spacing-12 text-left dark:border-secondary-aquaBlue/40 dark:bg-secondary-aquaBlue/20">
-                <div className="text-4xl font-light text-secondary-turquoise dark:text-secondary-aquaBlue">
-                  {data.github.organization}
-                </div>
-                <div className="mt-spacing-4 text-[10px] font-bold uppercase tracking-wider text-secondary-aquaBlue dark:text-neutral-5">
-                  Organization Scope
-                </div>
-              </div>
-            </div>
-            <div className="my-spacing-16 h-px bg-semantic-borderSubtle/50 dark:bg-neutral-50/50"></div>
-            <h4 className={sectionTitleClass}>Repo Traffic (14d)</h4>
-            <div className="grid grid-cols-2 gap-spacing-12">
-              <div className="rounded-sm border border-brand-redTint/30 bg-brand-redTint/10 p-spacing-12 dark:bg-brand-redTint/20">
-                <div className="text-xs uppercase tracking-wide text-brand-red dark:text-neutral-5">Views (14d)</div>
-                <div className="mt-spacing-4 text-xl font-light text-brand-vodafone dark:text-brand-redTint">{data.github.repoViews14d.toLocaleString()}</div>
-                <div className={`mt-spacing-4 text-[10px] font-semibold uppercase tracking-wide ${repoViewsDeltaClassName}`}>
-                  vs prev 14d {formatDelta(data.github.repoViews14dDelta)}
-                </div>
-              </div>
-              <div className="rounded-sm border border-secondary-aquaBlue/30 bg-secondary-aquaBlue/10 p-spacing-12 dark:bg-secondary-aquaBlue/20">
-                <div className="text-xs uppercase tracking-wide text-secondary-aquaBlue dark:text-neutral-5">Clones (14d)</div>
-                <div className="mt-spacing-4 text-xl font-light text-secondary-turquoise dark:text-secondary-aquaBlue">{data.github.repoClones14d.toLocaleString()}</div>
-                <div className="mt-spacing-4 text-[10px] font-semibold uppercase tracking-wide text-secondary-aquaBlue dark:text-neutral-5">
-                  Unique cloners {data.github.uniqueCloners14d.toLocaleString()}
-                </div>
-              </div>
-            </div>
-            <div className="rounded-sm border border-semantic-borderSubtle bg-neutral-5 p-spacing-12 dark:border-neutral-50/70 dark:bg-neutral-95">
-              <div className="text-[10px] uppercase tracking-wide text-neutral-60 dark:text-neutral-25">Unique Visitors (14d)</div>
-              <div className="mt-spacing-4 text-lg font-light text-semantic-textNeutral dark:text-neutral-5">{data.github.uniqueVisitors14d.toLocaleString()}</div>
-            </div>
-            <h4 className={sectionTitleClass}>Issue & PR Health</h4>
-            <div className="grid grid-cols-3 gap-spacing-12">
-              <div className="rounded-sm border border-semantic-borderSubtle bg-neutral-5 p-spacing-12 dark:border-neutral-50/70 dark:bg-neutral-95">
-                <div className="text-[10px] uppercase tracking-wide text-neutral-60 dark:text-neutral-25">Open Bugs</div>
-                <div className="mt-spacing-4 text-lg font-light text-semantic-textNeutral dark:text-neutral-5">{data.github.openBugs}</div>
-              </div>
-              <div className="rounded-sm border border-brand-redTint/30 bg-brand-redTint/10 p-spacing-12 dark:bg-brand-redTint/20">
-                <div className="text-[10px] uppercase tracking-wide text-brand-red dark:text-neutral-5">Critical Bugs</div>
-                <div className="mt-spacing-4 text-lg font-light text-brand-vodafone dark:text-brand-redTint">{data.github.openCriticalBugs}</div>
-              </div>
-              <div className="rounded-sm border border-semantic-borderSubtle bg-neutral-5 p-spacing-12 dark:border-neutral-50/70 dark:bg-neutral-95">
-                <div className="text-[10px] uppercase tracking-wide text-neutral-60 dark:text-neutral-25">Median Bug Age</div>
-                <div className="mt-spacing-4 text-lg font-light text-semantic-textNeutral dark:text-neutral-5">{data.github.medianBugAgeDays}d</div>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-spacing-12">
-              <div className="rounded-sm border border-secondary-aquaBlue/30 bg-secondary-aquaBlue/10 p-spacing-12 dark:bg-secondary-aquaBlue/20">
-                <div className="text-[10px] uppercase tracking-wide text-secondary-aquaBlue dark:text-neutral-5">Bugs Opened vs Closed (7d)</div>
-                <div className="mt-spacing-4 text-lg font-light text-secondary-turquoise dark:text-secondary-aquaBlue">
-                  {data.github.bugsOpened7d} / {data.github.bugsClosed7d}
-                </div>
-              </div>
-              <div className="rounded-sm border border-semantic-borderSubtle bg-neutral-5 p-spacing-12 dark:border-neutral-50/70 dark:bg-neutral-95">
-                <div className="text-[10px] uppercase tracking-wide text-neutral-60 dark:text-neutral-25">Open PRs / Older than 7d</div>
-                <div className="mt-spacing-4 text-lg font-light text-semantic-textNeutral dark:text-neutral-5">
-                  {data.github.openPRs} / {data.github.openPROlderThan7d}
-                </div>
-              </div>
-            </div>
-            <div className="grid grid-cols-3 gap-spacing-12">
-              <div className="rounded-sm border border-semantic-borderSubtle bg-neutral-5 p-spacing-12 dark:border-neutral-50/70 dark:bg-neutral-95">
-                <div className="text-[10px] uppercase tracking-wide text-neutral-60 dark:text-neutral-25">Merged PRs (7d)</div>
-                <div className="mt-spacing-4 text-lg font-light text-semantic-textNeutral dark:text-neutral-5">{data.github.mergedPRs7d}</div>
-              </div>
-              <div className="rounded-sm border border-semantic-borderSubtle bg-neutral-5 p-spacing-12 dark:border-neutral-50/70 dark:bg-neutral-95">
-                <div className="text-[10px] uppercase tracking-wide text-neutral-60 dark:text-neutral-25">First Review (Median)</div>
-                <div className="mt-spacing-4 text-lg font-light text-semantic-textNeutral dark:text-neutral-5">{data.github.medianTimeToFirstReviewHours}h</div>
-              </div>
-              <div className="rounded-sm border border-semantic-borderSubtle bg-neutral-5 p-spacing-12 dark:border-neutral-50/70 dark:bg-neutral-95">
-                <div className="text-[10px] uppercase tracking-wide text-neutral-60 dark:text-neutral-25">Time to Merge (Median)</div>
-                <div className="mt-spacing-4 text-lg font-light text-semantic-textNeutral dark:text-neutral-5">{data.github.medianTimeToMergeHours}h</div>
-              </div>
-            </div>
-            <div className="my-spacing-16 h-px bg-semantic-borderSubtle/50 dark:bg-neutral-50/50"></div>
-            <h4 className={sectionTitleClass}>Top Consuming Repositories</h4>
-            <ul className="space-y-spacing-12">
-              {data.github.topConsumingRepos.map((item) => (
-                <li key={item.repo}>
-                  <ProgressBar
-                    label={item.repo}
-                    value={item.imports}
-                    max={maxGithubRepoUsage}
-                    color="bg-secondary-turquoise dark:bg-secondary-turquoiseTint"
-                  />
-                </li>
-              ))}
-            </ul>
-            <h4 className={`${sectionTitleClass} mt-spacing-4`}>Top Imported Components</h4>
-            <ul className="space-y-spacing-12">
-              {data.github.topImportedComponents.map((item) => (
-                <li key={item.componentName}>
-                  <ProgressBar
-                    label={item.componentName}
-                    value={item.count}
-                    max={maxGithubComponentUsage}
-                    color="bg-secondary-aquaBlue dark:bg-secondary-aquaBlueTint"
-                  />
-                </li>
-              ))}
-            </ul>
           </KpiCard>
           </div>
           )}
 
           {/* 3. CONTENTFUL */}
           {isPillarActive('content') && (
-          <div className={getCardLayoutClass('content')}>
+          <div className={getCardLayoutClass()}>
           <KpiCard
             title="CONTENT"
             icon={<ContentfulMonochromeIcon />}
             hideOutline
             accentClassName="bg-brand-vodafone dark:bg-brand-redTint"
+            className="h-full"
           >
-            <h4 className={sectionTitleClass}>Content Footprint</h4>
-            <div className="overflow-hidden rounded-sm border border-semantic-borderSubtle dark:border-neutral-50/70">
-              <div className="bg-neutral-5 p-spacing-12 text-left dark:bg-neutral-95">
-                <div className="text-4xl font-light text-neutral-95 dark:text-neutral-5">
-                  {data.contentful.totalEntries.toLocaleString()}
+            <div className={hasExpandedCardLayout ? 'xl:grid xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] xl:gap-spacing-24' : 'space-y-spacing-16'}>
+              <div className="space-y-spacing-16">
+                <div>
+                  <h4 className={sectionTitleClass}>Content Footprint</h4>
+                  <div className="overflow-hidden rounded-sm border border-semantic-borderSubtle dark:border-neutral-50/70">
+                    <div className="bg-neutral-5 p-spacing-12 text-left dark:bg-neutral-95">
+                      <div className="text-4xl font-light text-neutral-95 dark:text-neutral-5">
+                        {data.contentful.totalEntries.toLocaleString()}
+                      </div>
+                      <div className="mt-spacing-4 text-[10px] font-bold uppercase tracking-wider text-semantic-textNeutral dark:text-neutral-25">
+                        Total Content Entries
+                      </div>
+                    </div>
+                    <div className="border-t border-brand-redTint/40 bg-brand-redTint/10 p-spacing-12 text-left dark:border-brand-redTint/50 dark:bg-brand-redTint/20">
+                      <div className="text-4xl font-light text-brand-red dark:text-neutral-5">
+                        {contentPublishedEntries.toLocaleString()}
+                      </div>
+                      <div className="mt-spacing-4 text-[10px] font-bold uppercase tracking-wider text-brand-red dark:text-neutral-5">
+                        Published Entries
+                      </div>
+                    </div>
+                    <div className="border-t border-secondary-aquaBlue/30 bg-secondary-aquaBlue/10 p-spacing-12 text-left dark:border-secondary-aquaBlue/40 dark:bg-secondary-aquaBlue/20">
+                      <div className="text-4xl font-light text-secondary-turquoise dark:text-secondary-aquaBlue">
+                        {contentDraftEntries.toLocaleString()}
+                      </div>
+                      <div className="mt-spacing-4 text-[10px] font-bold uppercase tracking-wider text-secondary-aquaBlue dark:text-neutral-5">
+                        Draft Entries
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <div className="mt-spacing-4 text-[10px] font-bold uppercase tracking-wider text-semantic-textNeutral dark:text-neutral-25">
-                  Total Content Entries
+                <div>
+                  <h4 className={sectionTitleClass}>Publishing Health</h4>
+                  <div className="space-y-spacing-8">
+                    <div className="flex justify-between gap-spacing-8 text-xs font-medium">
+                      <span className="text-neutral-60 dark:text-neutral-25">Published vs Draft</span>
+                      <span className="font-light text-semantic-textNeutral dark:text-neutral-5">{contentPublishedPercentage}% Published</span>
+                    </div>
+                    <div className="h-spacing-8 w-full overflow-hidden rounded-tokenFull bg-neutral-25 dark:bg-neutral-85">
+                      <div className="flex h-full w-full">
+                        <div
+                          className="h-full bg-brand-vodafone transition-all duration-1000 ease-out dark:bg-brand-redTint"
+                          style={{ width: `${contentPublishedPercentage}%` }}
+                        />
+                        <div
+                          className="h-full bg-secondary-aquaBlue transition-all duration-1000 ease-out dark:bg-secondary-aquaBlueTint"
+                          style={{ width: `${contentDraftPercentage}%` }}
+                        />
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap items-center justify-between gap-spacing-8 text-[11px] font-medium">
+                      <span className="text-brand-vodafone dark:text-brand-redTint">
+                        Published: {contentPublishedEntries.toLocaleString()} ({contentPublishedPercentage}%)
+                      </span>
+                      <span className="text-secondary-aquaBlue dark:text-secondary-aquaBlueTint">
+                        Drafts: {contentDraftEntries.toLocaleString()} ({contentDraftPercentage}%)
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <h4 className={sectionTitleClass}>Activity</h4>
+                  <div className="grid grid-cols-1 gap-spacing-12 sm:grid-cols-2">
+                    <div className="rounded-sm border border-brand-redTint/30 bg-brand-redTint/10 p-spacing-12 dark:bg-brand-redTint/20">
+                      <div className="text-xs uppercase tracking-wide text-brand-red dark:text-neutral-5">Published (30d)</div>
+                      <div className="mt-spacing-4 text-xl font-light text-brand-vodafone dark:text-brand-redTint">{data.contentful.publishedEntries30d.toLocaleString()}</div>
+                      <div className={`mt-spacing-4 text-[10px] font-semibold uppercase tracking-wide ${publishedEntries30dDeltaClassName}`}>
+                        vs prev 30d {formatDelta(data.contentful.publishedEntries30dDelta)}
+                      </div>
+                    </div>
+                    <div className="rounded-sm border border-secondary-aquaBlue/30 bg-secondary-aquaBlue/10 p-spacing-12 dark:bg-secondary-aquaBlue/20">
+                      <div className="text-xs uppercase tracking-wide text-secondary-aquaBlue dark:text-neutral-5">Assets (Total)</div>
+                      <div className="mt-spacing-4 text-xl font-light text-secondary-turquoise dark:text-secondary-aquaBlue">{data.contentful.totalAssets.toLocaleString()}</div>
+                    </div>
+                  </div>
+                  <div className="mt-spacing-12 grid grid-cols-1 gap-spacing-12 sm:grid-cols-2">
+                    <div className="rounded-sm border border-brand-redTint/30 bg-brand-redTint/10 p-spacing-12 dark:bg-brand-redTint/20">
+                      <div className="text-[10px] uppercase tracking-wide text-brand-red dark:text-neutral-5">Stale Drafts (30d+)</div>
+                      <div className="mt-spacing-4 text-lg font-light text-brand-vodafone dark:text-brand-redTint">{data.contentful.staleDraftEntries}</div>
+                    </div>
+                    <div className="rounded-sm border border-secondary-aquaBlue/30 bg-secondary-aquaBlue/10 p-spacing-12 dark:bg-secondary-aquaBlue/20">
+                      <div className="text-[10px] uppercase tracking-wide text-secondary-aquaBlue dark:text-neutral-5">Scheduled (Next 30d)</div>
+                      <div className="mt-spacing-4 text-lg font-light text-secondary-turquoise dark:text-secondary-aquaBlue">{data.contentful.scheduledEntriesNext30Days}</div>
+                    </div>
+                  </div>
                 </div>
               </div>
-              <div className="border-t border-brand-redTint/40 bg-brand-redTint/10 p-spacing-12 text-left dark:border-brand-redTint/50 dark:bg-brand-redTint/20">
-                <div className="text-4xl font-light text-brand-red dark:text-neutral-5">
-                  {contentPublishedEntries.toLocaleString()}
-                </div>
-                <div className="mt-spacing-4 text-[10px] font-bold uppercase tracking-wider text-brand-red dark:text-neutral-5">
-                  Published Entries
-                </div>
-              </div>
-              <div className="border-t border-secondary-aquaBlue/30 bg-secondary-aquaBlue/10 p-spacing-12 text-left dark:border-secondary-aquaBlue/40 dark:bg-secondary-aquaBlue/20">
-                <div className="text-4xl font-light text-secondary-turquoise dark:text-secondary-aquaBlue">
-                  {contentDraftEntries.toLocaleString()}
-                </div>
-                <div className="mt-spacing-4 text-[10px] font-bold uppercase tracking-wider text-secondary-aquaBlue dark:text-neutral-5">
-                  Draft Entries
+              <div className="space-y-spacing-16">
+                <div>
+                  <div className="mb-spacing-8 flex items-center justify-between gap-spacing-12">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-neutral-60 dark:text-neutral-25">Distribution</h4>
+                    <div className="inline-flex rounded-tokenFull border border-semantic-borderSubtle bg-semantic-backgroundNeutral p-[2px] dark:border-neutral-50/70 dark:bg-neutral-95">
+                      <button
+                        type="button"
+                        onClick={() => setContentDistributionMode('contentType')}
+                        className={`rounded-tokenFull px-spacing-12 py-spacing-4 text-[11px] font-semibold uppercase tracking-wide transition ${
+                          showingContentTypeDistribution
+                            ? 'bg-secondary-aquaBlue text-neutral-white dark:bg-secondary-aquaBlue dark:text-neutral-95'
+                            : 'text-neutral-60 dark:text-neutral-25'
+                        }`}
+                      >
+                        Content Type
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setContentDistributionMode('taxonomy')}
+                        className={`rounded-tokenFull px-spacing-12 py-spacing-4 text-[11px] font-semibold uppercase tracking-wide transition ${
+                          !showingContentTypeDistribution
+                            ? 'bg-brand-red text-neutral-white dark:bg-brand-redTint dark:text-neutral-95'
+                            : 'text-neutral-60 dark:text-neutral-25'
+                        }`}
+                      >
+                        Taxonomy
+                      </button>
+                    </div>
+                  </div>
+                  {showingContentTypeDistribution ? (
+                    data.contentful.contentTypeDistribution.length > 0 ? (
+                      <ul className="space-y-spacing-12">
+                        {data.contentful.contentTypeDistribution.map((item) => (
+                          <li key={item.contentType}>
+                            <ProgressBar
+                              label={item.contentType}
+                              value={item.entries}
+                              max={maxContentTypeEntries}
+                              color="bg-secondary-aquaBlue dark:bg-secondary-aquaBlueTint"
+                            />
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <div className="text-xs text-neutral-60 dark:text-neutral-25">
+                        {contentTypeDistributionUnavailable
+                          ? `Content type distribution unavailable. ${data.contentful.contentTypeDistributionError || ''}`.trim()
+                          : 'No content type distribution data available.'}
+                      </div>
+                    )
+                  ) : (
+                    data.contentful.taxonomyDistribution.length > 0 ? (
+                      <ul className="space-y-spacing-12">
+                        {data.contentful.taxonomyDistribution.map((item) => (
+                          <li key={item.conceptId}>
+                            <ProgressBar
+                              label={item.conceptLabel}
+                              value={item.entries}
+                              max={maxTaxonomyEntries}
+                              color="bg-brand-red dark:bg-brand-redTint"
+                            />
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <div className="text-xs text-neutral-60 dark:text-neutral-25">
+                        {taxonomyDistributionUnavailable
+                          ? `Taxonomy distribution unavailable. ${data.contentful.taxonomyDistributionError || ''}`.trim()
+                          : 'No taxonomy distribution data available.'}
+                      </div>
+                    )
+                  )}
                 </div>
               </div>
             </div>
-            <div className="my-spacing-16 h-px bg-semantic-borderSubtle/50 dark:bg-neutral-50/50"></div>
-            <h4 className={sectionTitleClass}>Publishing Health</h4>
-            <div className="space-y-spacing-8">
-              <div className="flex justify-between text-xs font-medium">
-                <span className="text-neutral-60 dark:text-neutral-25">Published vs Draft</span>
-                <span className="font-light text-semantic-textNeutral dark:text-neutral-5">{contentPublishedPercentage}% Published</span>
-              </div>
-              <div className="h-spacing-8 w-full overflow-hidden rounded-tokenFull bg-neutral-25 dark:bg-neutral-85">
-                <div className="flex h-full w-full">
-                  <div
-                    className="h-full bg-brand-vodafone transition-all duration-1000 ease-out dark:bg-brand-redTint"
-                    style={{ width: `${contentPublishedPercentage}%` }}
-                  />
-                  <div
-                    className="h-full bg-secondary-aquaBlue transition-all duration-1000 ease-out dark:bg-secondary-aquaBlueTint"
-                    style={{ width: `${contentDraftPercentage}%` }}
-                  />
-                </div>
-              </div>
-              <div className="flex flex-wrap items-center justify-between gap-spacing-8 text-[11px] font-medium">
-                <span className="text-brand-vodafone dark:text-brand-redTint">
-                  Published: {contentPublishedEntries.toLocaleString()} ({contentPublishedPercentage}%)
-                </span>
-                <span className="text-secondary-aquaBlue dark:text-secondary-aquaBlueTint">
-                  Drafts: {contentDraftEntries.toLocaleString()} ({contentDraftPercentage}%)
-                </span>
-              </div>
-            </div>
-            <h4 className={sectionTitleClass}>Activity</h4>
-            <div className="grid grid-cols-2 gap-spacing-12">
-              <div className="rounded-sm border border-brand-redTint/30 bg-brand-redTint/10 p-spacing-12 dark:bg-brand-redTint/20">
-                <div className="text-xs uppercase tracking-wide text-brand-red dark:text-neutral-5">Published (30d)</div>
-                <div className="mt-spacing-4 text-xl font-light text-brand-vodafone dark:text-brand-redTint">{data.contentful.publishedEntries30d.toLocaleString()}</div>
-                <div className={`mt-spacing-4 text-[10px] font-semibold uppercase tracking-wide ${publishedEntries30dDeltaClassName}`}>
-                  vs prev 30d {formatDelta(data.contentful.publishedEntries30dDelta)}
-                </div>
-              </div>
-              <div className="rounded-sm border border-secondary-aquaBlue/30 bg-secondary-aquaBlue/10 p-spacing-12 dark:bg-secondary-aquaBlue/20">
-                <div className="text-xs uppercase tracking-wide text-secondary-aquaBlue dark:text-neutral-5">Assets (Total)</div>
-                <div className="mt-spacing-4 text-xl font-light text-secondary-turquoise dark:text-secondary-aquaBlue">{data.contentful.totalAssets.toLocaleString()}</div>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-spacing-12">
-              <div className="rounded-sm border border-brand-redTint/30 bg-brand-redTint/10 p-spacing-12 dark:bg-brand-redTint/20">
-                <div className="text-[10px] uppercase tracking-wide text-brand-red dark:text-neutral-5">Stale Drafts (30d+)</div>
-                <div className="mt-spacing-4 text-lg font-light text-brand-vodafone dark:text-brand-redTint">{data.contentful.staleDraftEntries}</div>
-              </div>
-              <div className="rounded-sm border border-secondary-aquaBlue/30 bg-secondary-aquaBlue/10 p-spacing-12 dark:bg-secondary-aquaBlue/20">
-                <div className="text-[10px] uppercase tracking-wide text-secondary-aquaBlue dark:text-neutral-5">Scheduled (Next 30d)</div>
-                <div className="mt-spacing-4 text-lg font-light text-secondary-turquoise dark:text-secondary-aquaBlue">{data.contentful.scheduledEntriesNext30Days}</div>
-              </div>
-            </div>
-            <div className="my-spacing-16 h-px bg-semantic-borderSubtle/50 dark:bg-neutral-50/50"></div>
-            <div className="mb-spacing-8 flex items-center justify-between gap-spacing-12">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-neutral-60 dark:text-neutral-25">Distribution</h4>
-              <div className="inline-flex rounded-tokenFull border border-semantic-borderSubtle bg-semantic-backgroundNeutral p-[2px] dark:border-neutral-50/70 dark:bg-neutral-95">
-                <button
-                  type="button"
-                  onClick={() => setContentDistributionMode('contentType')}
-                  className={`rounded-tokenFull px-spacing-12 py-spacing-4 text-[11px] font-semibold uppercase tracking-wide transition ${
-                    showingContentTypeDistribution
-                      ? 'bg-secondary-aquaBlue text-neutral-white dark:bg-secondary-aquaBlue dark:text-neutral-95'
-                      : 'text-neutral-60 dark:text-neutral-25'
-                  }`}
-                >
-                  Content Type
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setContentDistributionMode('taxonomy')}
-                  className={`rounded-tokenFull px-spacing-12 py-spacing-4 text-[11px] font-semibold uppercase tracking-wide transition ${
-                    !showingContentTypeDistribution
-                      ? 'bg-brand-red text-neutral-white dark:bg-brand-redTint dark:text-neutral-95'
-                      : 'text-neutral-60 dark:text-neutral-25'
-                  }`}
-                >
-                  Taxonomy
-                </button>
-              </div>
-            </div>
-            {showingContentTypeDistribution ? (
-              data.contentful.contentTypeDistribution.length > 0 ? (
-                <ul className="space-y-spacing-12">
-                  {data.contentful.contentTypeDistribution.map((item) => (
-                    <li key={item.contentType}>
-                      <ProgressBar
-                        label={item.contentType}
-                        value={item.entries}
-                        max={maxContentTypeEntries}
-                        color="bg-secondary-aquaBlue dark:bg-secondary-aquaBlueTint"
-                      />
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <div className="text-xs text-neutral-60 dark:text-neutral-25">
-                  {contentTypeDistributionUnavailable
-                    ? `Content type distribution unavailable. ${data.contentful.contentTypeDistributionError || ''}`.trim()
-                    : 'No content type distribution data available.'}
-                </div>
-              )
-            ) : (
-              data.contentful.taxonomyDistribution.length > 0 ? (
-                <ul className="space-y-spacing-12">
-                  {data.contentful.taxonomyDistribution.map((item) => (
-                    <li key={item.conceptId}>
-                      <ProgressBar
-                        label={item.conceptLabel}
-                        value={item.entries}
-                        max={maxTaxonomyEntries}
-                        color="bg-brand-red dark:bg-brand-redTint"
-                      />
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <div className="text-xs text-neutral-60 dark:text-neutral-25">
-                  {taxonomyDistributionUnavailable
-                    ? `Taxonomy distribution unavailable. ${data.contentful.taxonomyDistributionError || ''}`.trim()
-                    : 'No taxonomy distribution data available.'}
-                </div>
-              )
-            )}
           </KpiCard>
           </div>
           )}
