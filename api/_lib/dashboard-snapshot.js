@@ -32,9 +32,9 @@ const isContentfulData = (value) => {
     isNumber(value.totalAssets) &&
     isNumber(value.locales) &&
     isNumber(value.scheduledEntries) &&
-    isNumber(value.scheduledEntriesNext7Days) &&
-    isNumber(value.weeklyPublishRate) &&
-    isNumber(value.weeklyPublishRateDelta) &&
+    isNumber(value.scheduledEntriesNext30Days) &&
+    isNumber(value.publishedEntries30d) &&
+    isNumber(value.publishedEntries30dDelta) &&
     isArray(value.contentTypeDistribution) &&
     (value.taxonomyDistribution === undefined || isArray(value.taxonomyDistribution))
   );

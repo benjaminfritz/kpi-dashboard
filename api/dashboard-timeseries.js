@@ -2,7 +2,6 @@ import { prisma } from './_lib/prisma.js';
 import { isPrismaSetupError } from './_lib/dashboard-snapshot.js';
 
 const SUPPORTED_SPANS = {
-  '7d': 7,
   '30d': 30,
   '90d': 90,
   '365d': 365,
@@ -15,9 +14,9 @@ const isFiniteNumber = (value) => typeof value === 'number' && Number.isFinite(v
 const toIsoDay = (date) => date.toISOString().slice(0, 10);
 
 const resolveSpan = (rawValue) => {
-  if (typeof rawValue !== 'string') return '7d';
+  if (typeof rawValue !== 'string') return '30d';
   const normalized = rawValue.trim().toLowerCase();
-  return Object.hasOwn(SUPPORTED_SPANS, normalized) ? normalized : '7d';
+  return Object.hasOwn(SUPPORTED_SPANS, normalized) ? normalized : '30d';
 };
 
 const resolveMonthOffset = (rawValue) => {

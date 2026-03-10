@@ -46,9 +46,9 @@ export interface ContentfulData {
   totalAssets: number;
   locales: number;
   scheduledEntries: number;
-  scheduledEntriesNext7Days: number;
-  weeklyPublishRate: number;
-  weeklyPublishRateDelta: number;
+  scheduledEntriesNext30Days: number;
+  publishedEntries30d: number;
+  publishedEntries30dDelta: number;
   contentTypeDistributionStatus?: 'ok' | 'unavailable';
   contentTypeDistributionError?: string | null;
   taxonomyDistributionStatus?: 'ok' | 'unavailable';
@@ -144,7 +144,7 @@ export interface DashboardData {
   lastUpdated: string;
 }
 
-export type TimeSpan = '7d' | '30d' | '90d' | '365d';
+export type TimeSpan = '30d' | '90d' | '365d';
 
 export interface DashboardTimeseriesResponse {
   span: TimeSpan;

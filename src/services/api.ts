@@ -19,9 +19,9 @@ const fallbackDashboardData: Omit<DashboardData, 'lastUpdated' | 'figma'> = {
     totalAssets: 510,
     locales: 6,
     scheduledEntries: 48,
-    scheduledEntriesNext7Days: 12,
-    weeklyPublishRate: 137,
-    weeklyPublishRateDelta: 18,
+    scheduledEntriesNext30Days: 12,
+    publishedEntries30d: 137,
+    publishedEntries30dDelta: 18,
     contentTypeDistributionStatus: 'ok',
     contentTypeDistributionError: null,
     taxonomyDistributionStatus: 'ok',
@@ -123,9 +123,9 @@ const isLiveContentfulPayload = (payload: unknown): payload is ContentfulData =>
     typeof candidate.totalAssets === 'number' &&
     typeof candidate.locales === 'number' &&
     typeof candidate.scheduledEntries === 'number' &&
-    typeof candidate.scheduledEntriesNext7Days === 'number' &&
-    typeof candidate.weeklyPublishRate === 'number' &&
-    typeof candidate.weeklyPublishRateDelta === 'number' &&
+    typeof candidate.scheduledEntriesNext30Days === 'number' &&
+    typeof candidate.publishedEntries30d === 'number' &&
+    typeof candidate.publishedEntries30dDelta === 'number' &&
     Array.isArray(candidate.contentTypeDistribution) &&
     (candidate.taxonomyDistribution === undefined || Array.isArray(candidate.taxonomyDistribution))
   );
@@ -273,7 +273,7 @@ export const fetchDashboardData = async (): Promise<DashboardData> => {
 };
 
 const isTimeSpan = (value: unknown): value is TimeSpan => (
-  value === '7d' || value === '30d' || value === '90d' || value === '365d'
+  value === '30d' || value === '90d' || value === '365d'
 );
 
 const isTimeseriesValueArray = (values: unknown, expectedLength: number): values is Array<number | null> => (
@@ -305,7 +305,7 @@ const isDashboardTimeseriesPayload = (payload: unknown): payload is DashboardTim
   );
 };
 
-export const fetchDashboardTimeseries = async (span: TimeSpan = '7d', monthOffset = 0): Promise<DashboardTimeseriesResponse> => {
+export const fetchDashboardTimeseries = async (span: TimeSpan = '30d', monthOffset = 0): Promise<DashboardTimeseriesResponse> => {
   const safeMonthOffset = Number.isFinite(monthOffset) ? Math.max(0, Math.floor(monthOffset)) : 0;
   const response = await fetch(`/api/dashboard-timeseries?span=${span}&month_offset=${safeMonthOffset}`);
   if (!response.ok) {

@@ -88,7 +88,7 @@ const App: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [activePillars, setActivePillars] = useState<Pillar[]>(['design', 'code', 'content']);
-  const [timeSpan, setTimeSpan] = useState<TimeSpan>('7d');
+  const [timeSpan, setTimeSpan] = useState<TimeSpan>('30d');
   const [trendDisplayMode, setTrendDisplayMode] = useState<TrendDisplayMode>('normalized');
   const [trendViewMode, setTrendViewMode] = useState<TrendViewMode>('combined');
   const [contentDistributionMode, setContentDistributionMode] = useState<ContentDistributionMode>('contentType');
@@ -270,7 +270,7 @@ const App: React.FC = () => {
     ? 100 - contentPublishedPercentage
     : 0;
   const formatDelta = (value: number) => `${value > 0 ? '+' : ''}${value}`;
-  const weeklyPublishRateDeltaClassName = data.contentful.weeklyPublishRateDelta >= 0
+  const publishedEntries30dDeltaClassName = data.contentful.publishedEntries30dDelta >= 0
     ? 'text-brand-vodafone dark:text-brand-redTint'
     : 'text-brand-red dark:text-brand-redTint';
   const contentTypeDistributionUnavailable = data.contentful.contentTypeDistributionStatus === 'unavailable';
@@ -287,9 +287,8 @@ const App: React.FC = () => {
   const isPillarActive = (pillar: Pillar) => areAllPillarsVisible || activePillars.includes(pillar);
   const visiblePillars = pillarOrder.filter((pillar) => isPillarActive(pillar));
   const sectionTitleClass = 'mb-spacing-8 text-xs font-bold uppercase tracking-wider text-neutral-60 dark:text-neutral-25';
-  const timeSpanOptions: TimeSpan[] = ['7d', '30d', '90d', '365d'];
+  const timeSpanOptions: TimeSpan[] = ['30d', '90d', '365d'];
   const timeSpanLabelByKey: Record<TimeSpan, string> = {
-    '7d': 'Last 7 days',
     '30d': 'Last 30 days',
     '90d': 'Last quarter',
     '365d': 'Last year',
@@ -897,10 +896,10 @@ const App: React.FC = () => {
             <h4 className={sectionTitleClass}>Activity</h4>
             <div className="grid grid-cols-2 gap-spacing-12">
               <div className="rounded-sm border border-brand-redTint/30 bg-brand-redTint/10 p-spacing-12 dark:bg-brand-redTint/20">
-                <div className="text-xs uppercase tracking-wide text-brand-red dark:text-neutral-5">Published (7d)</div>
-                <div className="mt-spacing-4 text-xl font-light text-brand-vodafone dark:text-brand-redTint">{data.contentful.weeklyPublishRate.toLocaleString()}</div>
-                <div className={`mt-spacing-4 text-[10px] font-semibold uppercase tracking-wide ${weeklyPublishRateDeltaClassName}`}>
-                  vs prev 7d {formatDelta(data.contentful.weeklyPublishRateDelta)}
+                <div className="text-xs uppercase tracking-wide text-brand-red dark:text-neutral-5">Published (30d)</div>
+                <div className="mt-spacing-4 text-xl font-light text-brand-vodafone dark:text-brand-redTint">{data.contentful.publishedEntries30d.toLocaleString()}</div>
+                <div className={`mt-spacing-4 text-[10px] font-semibold uppercase tracking-wide ${publishedEntries30dDeltaClassName}`}>
+                  vs prev 30d {formatDelta(data.contentful.publishedEntries30dDelta)}
                 </div>
               </div>
               <div className="rounded-sm border border-secondary-aquaBlue/30 bg-secondary-aquaBlue/10 p-spacing-12 dark:bg-secondary-aquaBlue/20">
@@ -914,8 +913,8 @@ const App: React.FC = () => {
                 <div className="mt-spacing-4 text-lg font-light text-brand-vodafone dark:text-brand-redTint">{data.contentful.staleDraftEntries}</div>
               </div>
               <div className="rounded-sm border border-secondary-aquaBlue/30 bg-secondary-aquaBlue/10 p-spacing-12 dark:bg-secondary-aquaBlue/20">
-                <div className="text-[10px] uppercase tracking-wide text-secondary-aquaBlue dark:text-neutral-5">Scheduled (Next 7d)</div>
-                <div className="mt-spacing-4 text-lg font-light text-secondary-turquoise dark:text-secondary-aquaBlue">{data.contentful.scheduledEntriesNext7Days}</div>
+                <div className="text-[10px] uppercase tracking-wide text-secondary-aquaBlue dark:text-neutral-5">Scheduled (Next 30d)</div>
+                <div className="mt-spacing-4 text-lg font-light text-secondary-turquoise dark:text-secondary-aquaBlue">{data.contentful.scheduledEntriesNext30Days}</div>
               </div>
             </div>
             <div className="my-spacing-16 h-px bg-semantic-borderSubtle/50 dark:bg-neutral-50/50"></div>

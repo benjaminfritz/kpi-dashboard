@@ -1,8 +1,8 @@
 const CONTENTFUL_API_BASE_URL = "https://api.contentful.com";
 const DEFAULT_ENVIRONMENT_ID = "master";
-const DEFAULT_LOOKBACK_DAYS = 7;
+const DEFAULT_LOOKBACK_DAYS = 30;
 const DEFAULT_STALE_DRAFT_DAYS = 30;
-const DEFAULT_SCHEDULE_WINDOW_DAYS = 7;
+const DEFAULT_SCHEDULE_WINDOW_DAYS = 30;
 const DEFAULT_TOP_CONTENT_TYPES = 15;
 const MAX_TOP_CONTENT_TYPES = 30;
 const CONTENT_TYPES_PAGE_LIMIT = 100;
@@ -592,8 +592,8 @@ export const loadContentfulAnalytics = async ({ query = {}, env = process.env } 
     draftEntries,
     staleDraftEntries,
     locales,
-    weeklyPublishRate,
-    previousWeeklyPublishRate,
+    publishedEntries30d,
+    previousPublishedEntries30d,
     totalAssets,
     scheduledMetrics,
     contentTypeDistribution,
@@ -685,7 +685,7 @@ export const loadContentfulAnalytics = async ({ query = {}, env = process.env } 
     taxonomyDistributionError = `Multiple taxonomy schemes detected (${detectedSchemes.join(", ")}). Set CONTENTFUL_TAXONOMY_SCHEME or use ?taxonomy_scheme=.`;
   }
 
-  const weeklyPublishRateDelta = weeklyPublishRate - previousWeeklyPublishRate;
+  const publishedEntries30dDelta = publishedEntries30d - previousPublishedEntries30d;
 
   return {
     totalEntries,
@@ -695,9 +695,9 @@ export const loadContentfulAnalytics = async ({ query = {}, env = process.env } 
     totalAssets,
     locales,
     scheduledEntries: scheduledMetrics.total,
-    scheduledEntriesNext7Days: scheduledMetrics.nextWindow,
-    weeklyPublishRate,
-    weeklyPublishRateDelta,
+    scheduledEntriesNext30Days: scheduledMetrics.nextWindow,
+    publishedEntries30d,
+    publishedEntries30dDelta,
     contentTypeDistributionStatus: contentTypeDistributionError ? "unavailable" : "ok",
     contentTypeDistributionError,
     contentTypeDistribution,
