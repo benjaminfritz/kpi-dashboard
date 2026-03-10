@@ -966,7 +966,7 @@ const App: React.FC = () => {
                 <div>
                   <div className="mb-spacing-8">
                     <h4 className="text-xs font-bold uppercase tracking-wider text-neutral-60 dark:text-neutral-25">Distribution</h4>
-                    <div className="mt-spacing-8 inline-flex rounded-tokenFull border border-semantic-borderSubtle bg-semantic-backgroundNeutral p-[2px] dark:border-neutral-50/70 dark:bg-neutral-95">
+                    <div className="my-spacing-8 inline-flex rounded-tokenFull border border-semantic-borderSubtle bg-semantic-backgroundNeutral p-[2px] dark:border-neutral-50/70 dark:bg-neutral-95">
                       <button
                         type="button"
                         onClick={() => setContentDistributionMode('contentType')}
