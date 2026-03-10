@@ -61,6 +61,7 @@ const CONTENT_TYPE_DISTRIBUTION_CACHE_TTL_MS = parsePositiveInteger(
 
 const contentTypeDistributionCache = new Map();
 const taxonomyDistributionCache = new Map();
+const tagDistributionCache = new Map();
 
 const parseDate = (value) => {
   if (typeof value !== "string" || value.length === 0) return null;
@@ -275,6 +276,19 @@ const formatConceptLabel = (conceptId) => {
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
 };
 
+const formatTagLabel = (tagId) => {
+  if (typeof tagId !== "string" || tagId.trim().length === 0) {
+    return "Unknown Tag";
+  }
+
+  return tagId
+    .trim()
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+};
+
 const getEntryConceptIds = (entry) => {
   const concepts = Array.isArray(entry?.metadata?.concepts) ? entry.metadata.concepts : [];
 
@@ -283,6 +297,18 @@ const getEntryConceptIds = (entry) => {
       concepts
         .map((concept) => concept?.sys?.id)
         .filter((conceptId) => typeof conceptId === "string" && conceptId.length > 0)
+    )
+  );
+};
+
+const getEntryTagIds = (entry) => {
+  const tags = Array.isArray(entry?.metadata?.tags) ? entry.metadata.tags : [];
+
+  return Array.from(
+    new Set(
+      tags
+        .map((tag) => tag?.sys?.id)
+        .filter((tagId) => typeof tagId === "string" && tagId.length > 0)
     )
   );
 };
@@ -344,6 +370,34 @@ const fetchAllEntries = async ({ token, spaceId, environmentId }) => {
     const payload = await requestContentful({
       token,
       path: buildEnvironmentPath(spaceId, environmentId, "/entries"),
+      searchParams: {
+        limit: String(ENTRIES_PAGE_LIMIT),
+        skip: String(skip),
+      },
+    });
+
+    const pageItems = Array.isArray(payload?.items) ? payload.items : [];
+    items.push(...pageItems);
+
+    const total = typeof payload?.total === "number" ? payload.total : items.length;
+    skip += pageItems.length;
+
+    if (skip >= total || pageItems.length === 0) {
+      break;
+    }
+  }
+
+  return items;
+};
+
+const fetchAllTags = async ({ token, spaceId, environmentId }) => {
+  const items = [];
+  let skip = 0;
+
+  while (true) {
+    const payload = await requestContentful({
+      token,
+      path: buildEnvironmentPath(spaceId, environmentId, "/tags"),
       searchParams: {
         limit: String(ENTRIES_PAGE_LIMIT),
         skip: String(skip),
@@ -433,14 +487,12 @@ const fetchEntryTaxonomyDistribution = async ({
   }
 
   const conceptCounts = new Map();
-  let uncategorizedEntries = 0;
   const entries = await fetchAllEntries({ token, spaceId, environmentId });
 
   entries.forEach((entry) => {
     const conceptIds = getEntryConceptIds(entry);
 
     if (conceptIds.length === 0) {
-      uncategorizedEntries += 1;
       return;
     }
 
@@ -456,14 +508,6 @@ const fetchEntryTaxonomyDistribution = async ({
       entries,
     }))
     .sort((a, b) => b.entries - a.entries);
-
-  if (uncategorizedEntries > 0) {
-    distribution.push({
-      conceptId: "uncategorized",
-      conceptLabel: "Uncategorized",
-      entries: uncategorizedEntries,
-    });
-  }
 
   distribution.sort((a, b) => b.entries - a.entries);
 
@@ -528,6 +572,55 @@ const fetchContentTypeDistribution = async ({ token, spaceId, environmentId, top
   return distribution.slice(0, topContentTypes);
 };
 
+const fetchTagDistribution = async ({ token, spaceId, environmentId, topContentTypes }) => {
+  const cacheKey = `${spaceId}:${environmentId}`;
+  const cached = tagDistributionCache.get(cacheKey);
+  if (cached && cached.expiresAt > Date.now()) {
+    return cached.value.slice(0, topContentTypes);
+  }
+
+  const [entries, tags] = await Promise.all([
+    fetchAllEntries({ token, spaceId, environmentId }),
+    fetchAllTags({ token, spaceId, environmentId }).catch(() => []),
+  ]);
+
+  const tagNames = new Map(
+    tags
+      .map((tag) => {
+        const tagId = tag?.sys?.id;
+        if (typeof tagId !== "string" || tagId.length === 0) return null;
+        const tagName = typeof tag?.name === "string" && tag.name.trim().length > 0
+          ? tag.name.trim()
+          : formatTagLabel(tagId);
+        return [tagId, tagName];
+      })
+      .filter(Boolean)
+  );
+
+  const counts = new Map();
+
+  entries.forEach((entry) => {
+    getEntryTagIds(entry).forEach((tagId) => {
+      counts.set(tagId, (counts.get(tagId) || 0) + 1);
+    });
+  });
+
+  const distribution = Array.from(counts.entries())
+    .map(([tagId, entries]) => ({
+      tagId,
+      tagLabel: tagNames.get(tagId) || formatTagLabel(tagId),
+      entries,
+    }))
+    .sort((a, b) => b.entries - a.entries);
+
+  tagDistributionCache.set(cacheKey, {
+    value: distribution,
+    expiresAt: Date.now() + CONTENT_TYPE_DISTRIBUTION_CACHE_TTL_MS,
+  });
+
+  return distribution.slice(0, topContentTypes);
+};
+
 export const loadContentfulAnalytics = async ({ query = {}, env = process.env } = {}) => {
   const token = env.CONTENTFUL_MANAGEMENT_TOKEN;
   const spaceId = env.CONTENTFUL_SPACE_ID;
@@ -585,6 +678,7 @@ export const loadContentfulAnalytics = async ({ query = {}, env = process.env } 
 
   let contentTypeDistributionError = null;
   let taxonomyDistributionError = null;
+  let tagDistributionError = null;
 
   const [
     totalEntries,
@@ -598,6 +692,7 @@ export const loadContentfulAnalytics = async ({ query = {}, env = process.env } 
     scheduledMetrics,
     contentTypeDistribution,
     resolvedTaxonomyDistribution,
+    tagDistribution,
   ] = await Promise.all([
     fetchCount({
       token,
@@ -676,6 +771,11 @@ export const loadContentfulAnalytics = async ({ query = {}, env = process.env } 
         error instanceof Error ? error.message : "Unknown taxonomy distribution error";
       return [];
     }),
+    fetchTagDistribution({ token, spaceId, environmentId, topContentTypes }).catch((error) => {
+      tagDistributionError =
+        error instanceof Error ? error.message : "Unknown tag distribution error";
+      return [];
+    }),
   ]);
 
   const taxonomyDistribution =
@@ -705,6 +805,9 @@ export const loadContentfulAnalytics = async ({ query = {}, env = process.env } 
     taxonomyDistributionError,
     taxonomyDistributionScheme: selectedScheme,
     taxonomyDistribution,
+    tagDistributionStatus: tagDistributionError ? "unavailable" : "ok",
+    tagDistributionError,
+    tagDistribution,
     taxonomyDistributionMeta: {
       selectionSource,
       detectedSchemes,

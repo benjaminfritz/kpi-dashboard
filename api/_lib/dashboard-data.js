@@ -18,6 +18,8 @@ const fallbackDashboardData = {
     contentTypeDistributionError: null,
     taxonomyDistributionStatus: 'ok',
     taxonomyDistributionError: null,
+    tagDistributionStatus: 'ok',
+    tagDistributionError: null,
     taxonomyDistributionScheme: 'deConsumer',
     contentTypeDistribution: [
       { contentType: 'LandingPage', entries: 310 },
@@ -30,7 +32,12 @@ const fallbackDashboardData = {
       { conceptId: 'header', conceptLabel: 'Header', entries: 4 },
       { conceptId: 'optionenAppsServicesMoFu', conceptLabel: 'Optionen Apps Services MoFu', entries: 3 },
       { conceptId: 'legalSeiten', conceptLabel: 'Legal Seiten', entries: 2 },
-      { conceptId: 'uncategorized', conceptLabel: 'Uncategorized', entries: 1200 },
+    ],
+    tagDistribution: [
+      { tagId: 'homepage', tagLabel: 'Homepage', entries: 142 },
+      { tagId: 'campaign', tagLabel: 'Campaign', entries: 87 },
+      { tagId: 'self-service', tagLabel: 'Self Service', entries: 54 },
+      { tagId: 'legal', tagLabel: 'Legal', entries: 28 },
     ],
   },
   github: {

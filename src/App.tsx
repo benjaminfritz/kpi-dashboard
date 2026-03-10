@@ -9,7 +9,7 @@ import { Github, Moon, Sun } from 'lucide-react';
 type Pillar = 'design' | 'code' | 'content';
 type TrendDisplayMode = 'normalized' | 'raw';
 type TrendViewMode = 'combined' | 'perPillar';
-type ContentDistributionMode = 'contentType' | 'taxonomy';
+type ContentDistributionMode = 'contentType' | 'taxonomy' | 'tags';
 const MONO_ICON_STROKE_WIDTH = 1;
 
 const FigmaMonochromeIcon: React.FC = () => (
@@ -275,12 +275,16 @@ const App: React.FC = () => {
     : 'text-brand-red dark:text-brand-redTint';
   const contentTypeDistributionUnavailable = data.contentful.contentTypeDistributionStatus === 'unavailable';
   const taxonomyDistributionUnavailable = data.contentful.taxonomyDistributionStatus === 'unavailable';
+  const tagDistributionUnavailable = data.contentful.tagDistributionStatus === 'unavailable';
   const repoViewsDeltaClassName = data.github.repoViews14dDelta >= 0
     ? 'text-brand-vodafone dark:text-brand-redTint'
     : 'text-brand-red dark:text-brand-redTint';
   const maxContentTypeEntries = Math.max(...data.contentful.contentTypeDistribution.map((item) => item.entries), 1);
   const maxTaxonomyEntries = Math.max(...data.contentful.taxonomyDistribution.map((item) => item.entries), 1);
+  const maxTagEntries = Math.max(...data.contentful.tagDistribution.map((item) => item.entries), 1);
   const showingContentTypeDistribution = contentDistributionMode === 'contentType';
+  const showingTaxonomyDistribution = contentDistributionMode === 'taxonomy';
+  const showingTagDistribution = contentDistributionMode === 'tags';
   const pillarOrder: Pillar[] = ['design', 'code', 'content'];
   const areAllPillarsVisible = activePillars.length === 0;
   const isFiltered = !areAllPillarsVisible && activePillars.length < pillarOrder.length;
@@ -960,9 +964,9 @@ const App: React.FC = () => {
               </div>
               <div className="space-y-spacing-16">
                 <div>
-                  <div className="mb-spacing-8 flex items-center justify-between gap-spacing-12">
+                  <div className="mb-spacing-8">
                     <h4 className="text-xs font-bold uppercase tracking-wider text-neutral-60 dark:text-neutral-25">Distribution</h4>
-                    <div className="inline-flex rounded-tokenFull border border-semantic-borderSubtle bg-semantic-backgroundNeutral p-[2px] dark:border-neutral-50/70 dark:bg-neutral-95">
+                    <div className="mt-spacing-8 inline-flex rounded-tokenFull border border-semantic-borderSubtle bg-semantic-backgroundNeutral p-[2px] dark:border-neutral-50/70 dark:bg-neutral-95">
                       <button
                         type="button"
                         onClick={() => setContentDistributionMode('contentType')}
@@ -978,12 +982,23 @@ const App: React.FC = () => {
                         type="button"
                         onClick={() => setContentDistributionMode('taxonomy')}
                         className={`rounded-tokenFull px-spacing-12 py-spacing-4 text-[11px] font-semibold uppercase tracking-wide transition ${
-                          !showingContentTypeDistribution
+                          showingTaxonomyDistribution
                             ? 'bg-brand-red text-neutral-white dark:bg-brand-redTint dark:text-neutral-95'
                             : 'text-neutral-60 dark:text-neutral-25'
                         }`}
                       >
                         Taxonomy
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setContentDistributionMode('tags')}
+                        className={`rounded-tokenFull px-spacing-12 py-spacing-4 text-[11px] font-semibold uppercase tracking-wide transition ${
+                          showingTagDistribution
+                            ? 'bg-neutral-95 text-neutral-white dark:bg-neutral-25 dark:text-neutral-95'
+                            : 'text-neutral-60 dark:text-neutral-25'
+                        }`}
+                      >
+                        Tags
                       </button>
                     </div>
                   </div>
@@ -1008,7 +1023,7 @@ const App: React.FC = () => {
                           : 'No content type distribution data available.'}
                       </div>
                     )
-                  ) : (
+                  ) : showingTaxonomyDistribution ? (
                     data.contentful.taxonomyDistribution.length > 0 ? (
                       <ul className="space-y-spacing-12">
                         {data.contentful.taxonomyDistribution.map((item) => (
@@ -1027,6 +1042,27 @@ const App: React.FC = () => {
                         {taxonomyDistributionUnavailable
                           ? `Taxonomy distribution unavailable. ${data.contentful.taxonomyDistributionError || ''}`.trim()
                           : 'No taxonomy distribution data available.'}
+                      </div>
+                    )
+                  ) : (
+                    data.contentful.tagDistribution.length > 0 ? (
+                      <ul className="space-y-spacing-12">
+                        {data.contentful.tagDistribution.map((item) => (
+                          <li key={item.tagId}>
+                            <ProgressBar
+                              label={item.tagLabel}
+                              value={item.entries}
+                              max={maxTagEntries}
+                              color="bg-neutral-95 dark:bg-neutral-25"
+                            />
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <div className="text-xs text-neutral-60 dark:text-neutral-25">
+                        {tagDistributionUnavailable
+                          ? `Tag distribution unavailable. ${data.contentful.tagDistributionError || ''}`.trim()
+                          : 'No tag distribution data available.'}
                       </div>
                     )
                   )}

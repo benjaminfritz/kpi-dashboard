@@ -26,6 +26,8 @@ const fallbackDashboardData: Omit<DashboardData, 'lastUpdated' | 'figma'> = {
     contentTypeDistributionError: null,
     taxonomyDistributionStatus: 'ok',
     taxonomyDistributionError: null,
+    tagDistributionStatus: 'ok',
+    tagDistributionError: null,
     taxonomyDistributionScheme: 'deConsumer',
     contentTypeDistribution: [
       { contentType: "LandingPage", entries: 310 },
@@ -38,7 +40,12 @@ const fallbackDashboardData: Omit<DashboardData, 'lastUpdated' | 'figma'> = {
       { conceptId: 'header', conceptLabel: 'Header', entries: 4 },
       { conceptId: 'optionenAppsServicesMoFu', conceptLabel: 'Optionen Apps Services MoFu', entries: 3 },
       { conceptId: 'legalSeiten', conceptLabel: 'Legal Seiten', entries: 2 },
-      { conceptId: 'uncategorized', conceptLabel: 'Uncategorized', entries: 1200 },
+    ],
+    tagDistribution: [
+      { tagId: 'homepage', tagLabel: 'Homepage', entries: 142 },
+      { tagId: 'campaign', tagLabel: 'Campaign', entries: 87 },
+      { tagId: 'self-service', tagLabel: 'Self Service', entries: 54 },
+      { tagId: 'legal', tagLabel: 'Legal', entries: 28 },
     ],
   },
   github: {
@@ -127,7 +134,8 @@ const isLiveContentfulPayload = (payload: unknown): payload is ContentfulData =>
     typeof candidate.publishedEntries30d === 'number' &&
     typeof candidate.publishedEntries30dDelta === 'number' &&
     Array.isArray(candidate.contentTypeDistribution) &&
-    (candidate.taxonomyDistribution === undefined || Array.isArray(candidate.taxonomyDistribution))
+    (candidate.taxonomyDistribution === undefined || Array.isArray(candidate.taxonomyDistribution)) &&
+    (candidate.tagDistribution === undefined || Array.isArray(candidate.tagDistribution))
   );
 };
 
@@ -135,8 +143,13 @@ const normalizeContentfulData = (contentful: ContentfulData): ContentfulData => 
   ...contentful,
   taxonomyDistributionStatus: contentful.taxonomyDistributionStatus ?? 'ok',
   taxonomyDistributionError: contentful.taxonomyDistributionError ?? null,
+  tagDistributionStatus: contentful.tagDistributionStatus ?? 'ok',
+  tagDistributionError: contentful.tagDistributionError ?? null,
   taxonomyDistributionScheme: contentful.taxonomyDistributionScheme ?? null,
-  taxonomyDistribution: Array.isArray(contentful.taxonomyDistribution) ? contentful.taxonomyDistribution : [],
+  taxonomyDistribution: Array.isArray(contentful.taxonomyDistribution)
+    ? contentful.taxonomyDistribution.filter((item) => item?.conceptId !== 'uncategorized')
+    : [],
+  tagDistribution: Array.isArray(contentful.tagDistribution) ? contentful.tagDistribution : [],
 });
 
 const fetchLiveContentfulData = async (): Promise<ContentfulData> => {
