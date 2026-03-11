@@ -11,6 +11,7 @@ type Pillar = 'design' | 'code' | 'content';
 type TrendDisplayMode = 'normalized' | 'raw';
 type TrendViewMode = 'combined' | 'perPillar';
 type ContentDistributionMode = 'contentType' | 'taxonomy' | 'tags';
+type ContentReleaseMode = 'released' | 'planned';
 const MONO_ICON_STROKE_WIDTH = 1;
 
 const FigmaMonochromeIcon: React.FC = () => (
@@ -80,6 +81,20 @@ const formatRangeLabel = (startDay: string, endDay: string): string => {
   return `${start.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} - ${end.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}`;
 };
 
+const formatReleaseDateLabel = (value: string): string => {
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return date.toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+};
+
 const App: React.FC = () => {
   const [data, setData] = useState<DashboardData | null>(null);
   const [figmaStatus, setFigmaStatus] = useState<FigmaConfigStatus | null>(null);
@@ -93,6 +108,7 @@ const App: React.FC = () => {
   const [trendDisplayMode, setTrendDisplayMode] = useState<TrendDisplayMode>('normalized');
   const [trendViewMode, setTrendViewMode] = useState<TrendViewMode>('combined');
   const [contentDistributionMode, setContentDistributionMode] = useState<ContentDistributionMode>('contentType');
+  const [contentReleaseMode, setContentReleaseMode] = useState<ContentReleaseMode>('released');
   const [darkMode, setDarkMode] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false;
     const savedTheme = window.localStorage.getItem('theme');
@@ -281,10 +297,30 @@ const App: React.FC = () => {
   const repoViewsDeltaClassName = data.github.repoViews14dDelta >= 0
     ? 'text-brand-vodafone dark:text-brand-redTint'
     : 'text-brand-red dark:text-brand-redTint';
-  const maxContentTypeEntries = Math.max(...data.contentful.contentTypeDistribution.map((item) => item.entries), 1);
-  const maxTaxonomyEntries = Math.max(...data.contentful.taxonomyDistribution.map((item) => item.entries), 1);
+  const visibleContentTypeDistribution = data.contentful.contentTypeDistribution.slice(0, 10);
+  const visibleTaxonomyDistribution = data.contentful.taxonomyDistribution.slice(0, 10);
+  const maxContentTypeEntries = Math.max(...visibleContentTypeDistribution.map((item) => item.entries), 1);
+  const maxTaxonomyEntries = Math.max(...visibleTaxonomyDistribution.map((item) => item.entries), 1);
   const maxTagEntries = Math.max(...data.contentful.tagDistribution.map((item) => item.entries), 1);
   const maxAssetTypeEntries = Math.max(...data.contentful.assetTypeDistribution.map((item) => item.entries), 1);
+  const contentReleases = [...(data.contentful.releases ?? [])];
+  const releasedReleases = contentReleases
+    .filter((release) => release.status === 'released')
+    .sort((left, right) => new Date(right.releaseDate).getTime() - new Date(left.releaseDate).getTime());
+  const plannedReleases = contentReleases
+    .filter((release) => release.status === 'planned' || release.status === 'inProgress')
+    .sort((left, right) => new Date(left.releaseDate).getTime() - new Date(right.releaseDate).getTime());
+  const visibleReleases = contentReleaseMode === 'released' ? releasedReleases : plannedReleases;
+  const releaseStatusLabelByKey = {
+    planned: 'Planned',
+    inProgress: 'In Progress',
+    released: 'Released',
+  } as const;
+  const releaseStatusClassNameByKey = {
+    planned: 'border-neutral-95 bg-neutral-95 text-neutral-white dark:border-neutral-25 dark:bg-neutral-25 dark:text-neutral-95',
+    inProgress: 'border-neutral-95 bg-neutral-95 text-neutral-white dark:border-neutral-25 dark:bg-neutral-25 dark:text-neutral-95',
+    released: 'border-secondary-aquaBlue bg-secondary-aquaBlue text-neutral-white dark:border-secondary-aquaBlueTint dark:bg-secondary-aquaBlueTint dark:text-neutral-95',
+  } as const;
   const showingContentTypeDistribution = contentDistributionMode === 'contentType';
   const showingTaxonomyDistribution = contentDistributionMode === 'taxonomy';
   const showingTagDistribution = contentDistributionMode === 'tags';
@@ -974,6 +1010,66 @@ const App: React.FC = () => {
                   </div>
                 )}
               </CollapsibleSection>
+              <CollapsibleSection title="Releases" titleClassName={sectionTitleClass} className={expandedContentSectionClassName}>
+                <div className="mb-spacing-12 flex w-full rounded-tokenFull border border-semantic-borderSubtle bg-semantic-backgroundNeutral p-[2px] dark:border-neutral-50/70 dark:bg-neutral-95">
+                  <button
+                    type="button"
+                    onClick={() => setContentReleaseMode('released')}
+                    className={`min-w-0 flex-1 rounded-tokenFull px-spacing-12 py-spacing-4 text-center text-[11px] font-semibold uppercase tracking-wide transition ${
+                      contentReleaseMode === 'released'
+                        ? 'bg-secondary-aquaBlue text-neutral-white dark:bg-secondary-aquaBlueTint dark:text-neutral-95'
+                        : 'text-neutral-60 dark:text-neutral-25'
+                    }`}
+                  >
+                    Released ({releasedReleases.length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setContentReleaseMode('planned')}
+                    className={`min-w-0 flex-1 rounded-tokenFull px-spacing-12 py-spacing-4 text-center text-[11px] font-semibold uppercase tracking-wide transition ${
+                      contentReleaseMode === 'planned'
+                        ? 'bg-neutral-95 text-neutral-white dark:bg-neutral-25 dark:text-neutral-95'
+                        : 'text-neutral-60 dark:text-neutral-25'
+                    }`}
+                  >
+                    Planned ({plannedReleases.length})
+                  </button>
+                </div>
+                {visibleReleases.length > 0 ? (
+                  <div className="space-y-spacing-12">
+                    {visibleReleases.map((release) => (
+                      <article
+                        key={release.id}
+                        className="rounded-sm border border-semantic-borderSubtle bg-neutral-5 p-spacing-12 dark:border-neutral-50/70 dark:bg-neutral-95"
+                      >
+                        <div className="flex flex-wrap items-center justify-between gap-spacing-8">
+                          <span className={`inline-flex rounded-tokenFull border px-spacing-8 py-[2px] text-[10px] font-semibold uppercase tracking-wide ${releaseStatusClassNameByKey[release.status]}`}>
+                            {releaseStatusLabelByKey[release.status]}
+                          </span>
+                          <span className="text-[10px] font-semibold uppercase tracking-wide text-neutral-60 dark:text-neutral-25">
+                            {release.version}
+                          </span>
+                        </div>
+                        <div className="mt-spacing-8 text-sm font-semibold text-semantic-textNeutral dark:text-neutral-5">
+                          {release.name}
+                        </div>
+                        <div className="mt-spacing-4 text-[11px] uppercase tracking-wide text-neutral-60 dark:text-neutral-25">
+                          {formatReleaseDateLabel(release.releaseDate)}
+                        </div>
+                        {release.summary ? (
+                          <p className="mt-spacing-8 text-xs leading-relaxed text-neutral-60 dark:text-neutral-25">
+                            {release.summary}
+                          </p>
+                        ) : null}
+                      </article>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-xs text-neutral-60 dark:text-neutral-25">
+                    {contentReleaseMode === 'released' ? 'No released items available.' : 'No planned items available.'}
+                  </div>
+                )}
+              </CollapsibleSection>
               <CollapsibleSection title="Distribution" titleClassName={sectionTitleClass} className={expandedContentDistributionSectionClassName}>
                 <div>
                   <div className="mb-spacing-12 flex w-full rounded-tokenFull border border-semantic-borderSubtle bg-semantic-backgroundNeutral p-[2px] dark:border-neutral-50/70 dark:bg-neutral-95">
@@ -1013,9 +1109,9 @@ const App: React.FC = () => {
                   </div>
                 </div>
                 {showingContentTypeDistribution ? (
-                  data.contentful.contentTypeDistribution.length > 0 ? (
+                  visibleContentTypeDistribution.length > 0 ? (
                     <ul className="space-y-spacing-12">
-                      {data.contentful.contentTypeDistribution.map((item) => (
+                      {visibleContentTypeDistribution.map((item) => (
                         <li key={item.contentType}>
                           <ProgressBar
                             label={item.contentType}
@@ -1034,9 +1130,9 @@ const App: React.FC = () => {
                     </div>
                   )
                 ) : showingTaxonomyDistribution ? (
-                  data.contentful.taxonomyDistribution.length > 0 ? (
+                  visibleTaxonomyDistribution.length > 0 ? (
                     <ul className="space-y-spacing-12">
-                      {data.contentful.taxonomyDistribution.map((item) => (
+                      {visibleTaxonomyDistribution.map((item) => (
                         <li key={item.conceptId}>
                           <ProgressBar
                             label={item.conceptLabel}

@@ -89,6 +89,90 @@ const getScheduledForDate = (item) => {
   return null;
 };
 
+const getLinkedEntityType = (value) => {
+  const candidates = [
+    value?.sys?.linkType,
+    value?.linkType,
+    value?.sys?.type,
+    value?.type,
+  ];
+
+  return candidates.find((candidate) => typeof candidate === "string" && candidate.length > 0) || null;
+};
+
+const getLinkedEntityId = (value) => {
+  const candidates = [
+    value?.sys?.id,
+    value?.id,
+  ];
+
+  return candidates.find((candidate) => typeof candidate === "string" && candidate.length > 0) || null;
+};
+
+const getReleaseActionStatus = (action) => {
+  const candidate = action?.sys?.status ?? action?.status;
+  return typeof candidate === "string" && candidate.length > 0 ? candidate : null;
+};
+
+const getReleaseActionDate = (action) => {
+  const rawCandidates = [
+    action?.sys?.updatedAt,
+    action?.sys?.createdAt,
+    action?.updatedAt,
+    action?.createdAt,
+  ];
+
+  for (const candidate of rawCandidates) {
+    const parsed = parseDate(candidate);
+    if (parsed) return parsed;
+  }
+
+  return null;
+};
+
+const getReleaseTitle = (release) => {
+  const candidates = [
+    release?.title,
+    release?.name,
+    getLinkedEntityId(release),
+  ];
+
+  return candidates.find((candidate) => typeof candidate === "string" && candidate.trim().length > 0)?.trim() || "Untitled Release";
+};
+
+const getReleaseVersionLabel = (release) => {
+  const versionCandidate = release?.sys?.version ?? release?.version;
+  if (typeof versionCandidate === "number" && Number.isFinite(versionCandidate)) {
+    return `v${versionCandidate}`;
+  }
+
+  return "Release";
+};
+
+const getReleaseEntityCount = (release) => {
+  const entities = release?.entities;
+
+  if (Array.isArray(entities?.items)) {
+    return entities.items.length;
+  }
+
+  if (Array.isArray(entities)) {
+    return entities.length;
+  }
+
+  if (typeof entities?.total === "number" && Number.isFinite(entities.total)) {
+    return entities.total;
+  }
+
+  return null;
+};
+
+const formatReleaseSummary = (release) => {
+  const entityCount = getReleaseEntityCount(release);
+  if (entityCount === null) return null;
+  return `${entityCount} item${entityCount === 1 ? "" : "s"} in release`;
+};
+
 const parseErrorBody = async (response) => {
   try {
     const payload = await response.json();
@@ -165,6 +249,34 @@ const buildEnvironmentPath = (spaceId, environmentId, resourcePath) =>
 const buildSpacePath = (spaceId, resourcePath) =>
   `/spaces/${encodeURIComponent(spaceId)}${resourcePath}`;
 
+const fetchCursorCollection = async ({ token, path, searchParams }) => {
+  const items = [];
+  let nextPath = path;
+  let nextSearchParams = searchParams;
+
+  while (true) {
+    const payload = await requestContentful({
+      token,
+      path: nextPath,
+      searchParams: nextSearchParams,
+    });
+
+    const pageItems = Array.isArray(payload?.items) ? payload.items : [];
+    items.push(...pageItems);
+
+    const relativeNextPath = typeof payload?.pages?.next === "string" ? payload.pages.next : null;
+    if (!relativeNextPath) {
+      break;
+    }
+
+    const nextUrl = new URL(relativeNextPath, CONTENTFUL_API_BASE_URL);
+    nextPath = nextUrl.pathname;
+    nextSearchParams = Object.fromEntries(nextUrl.searchParams.entries());
+  }
+
+  return items;
+};
+
 const fetchCount = async ({ token, spaceId, environmentId, resourcePath, filters = {} }) => {
   const payload = await requestContentful({
     token,
@@ -216,8 +328,8 @@ const fetchScheduledEntries = async ({
     const items = Array.isArray(payload?.items) ? payload.items : [];
     items.forEach((item) => {
       if (item?.sys?.status !== "scheduled") return;
-      if (item?.entity?.sys?.type !== "Entry") return;
-      const entryId = item?.entity?.sys?.id;
+      if (getLinkedEntityType(item?.entity) !== "Entry") return;
+      const entryId = getLinkedEntityId(item?.entity);
       if (typeof entryId === "string" && entryId.length > 0) {
         uniqueEntryIds.add(entryId);
 
@@ -730,6 +842,122 @@ const fetchAssetTypeDistribution = async ({ token, spaceId, environmentId, topCo
   return distribution.slice(0, topContentTypes);
 };
 
+const fetchContentfulReleases = async ({ token, spaceId, environmentId, now, limit }) => {
+  const requestedLimit = typeof limit === "number" && Number.isFinite(limit) && limit > 0
+    ? Math.floor(limit)
+    : null;
+
+  const releaseItems = (await fetchCursorCollection({
+    token,
+    path: buildEnvironmentPath(spaceId, environmentId, "/releases"),
+    searchParams: {
+      limit: String(requestedLimit ? Math.max(requestedLimit, 10) : 100),
+      order: "-sys.updatedAt",
+      "entities[exists]": "true",
+      "sys.status[in]": "active",
+    },
+  }))
+    .filter((release) => getLinkedEntityId(release))
+    .slice(0, requestedLimit ? Math.max(requestedLimit, 10) : undefined);
+
+  if (releaseItems.length === 0) {
+    return [];
+  }
+
+  const releaseIds = releaseItems
+    .map((release) => getLinkedEntityId(release))
+    .filter(Boolean);
+
+  const [scheduledActions, publishActions] = await Promise.all([
+    fetchCursorCollection({
+      token,
+      path: buildEnvironmentPath(spaceId, environmentId, "/scheduled_actions"),
+      searchParams: {
+        limit: "100",
+        order: "scheduledFor.datetime",
+        "sys.status[in]": "scheduled",
+      },
+    }).catch(() => []),
+    fetchCursorCollection({
+      token,
+      path: buildEnvironmentPath(spaceId, environmentId, "/release_actions"),
+      searchParams: {
+        limit: "100",
+        action: "publish",
+        uniqueBy: "sys.release.sys.id",
+        order: "-sys.updatedAt",
+        "sys.release.sys.id[in]": releaseIds.join(","),
+      },
+    }).catch(() => []),
+  ]);
+
+  const nextScheduledPublishByReleaseId = new Map();
+  scheduledActions.forEach((action) => {
+    if ((action?.action ?? null) !== "publish") return;
+
+    const entityType = getLinkedEntityType(action?.entity);
+    if (entityType !== "Release") return;
+
+    const releaseId = getLinkedEntityId(action?.entity);
+    if (!releaseId || !releaseIds.includes(releaseId)) return;
+
+    const scheduledFor = getScheduledForDate(action);
+    if (!scheduledFor || scheduledFor < now) return;
+
+    const existing = nextScheduledPublishByReleaseId.get(releaseId);
+    if (!existing || scheduledFor < existing) {
+      nextScheduledPublishByReleaseId.set(releaseId, scheduledFor);
+    }
+  });
+
+  const latestPublishActionByReleaseId = new Map();
+  publishActions.forEach((action) => {
+    const releaseId = getLinkedEntityId(action?.sys?.release) || getLinkedEntityId(action?.release);
+    if (!releaseId || !releaseIds.includes(releaseId)) return;
+    if (!latestPublishActionByReleaseId.has(releaseId)) {
+      latestPublishActionByReleaseId.set(releaseId, action);
+    }
+  });
+
+  return releaseItems
+    .map((release) => {
+      const releaseId = getLinkedEntityId(release);
+      if (!releaseId) return null;
+
+      const nextScheduledPublish = nextScheduledPublishByReleaseId.get(releaseId) || null;
+      const latestPublishAction = latestPublishActionByReleaseId.get(releaseId) || null;
+      const latestPublishActionStatus = getReleaseActionStatus(latestPublishAction);
+      const latestPublishActionDate = getReleaseActionDate(latestPublishAction);
+      const fallbackDate =
+        parseDate(release?.sys?.updatedAt) ||
+        parseDate(release?.sys?.createdAt) ||
+        now;
+
+      let status = "planned";
+      if (nextScheduledPublish) {
+        status = "planned";
+      } else if (latestPublishActionStatus === "created" || latestPublishActionStatus === "inProgress") {
+        status = "inProgress";
+      } else if (latestPublishActionStatus === "succeeded") {
+        status = "released";
+      }
+
+      const releaseDate = nextScheduledPublish || latestPublishActionDate || fallbackDate;
+
+      return {
+        id: releaseId,
+        name: getReleaseTitle(release),
+        version: getReleaseVersionLabel(release),
+        releaseDate: releaseDate.toISOString(),
+        status,
+        summary: formatReleaseSummary(release),
+      };
+    })
+    .filter(Boolean)
+    .sort((left, right) => new Date(right.releaseDate).getTime() - new Date(left.releaseDate).getTime())
+    .slice(0, requestedLimit ?? undefined);
+};
+
 export const loadContentfulAnalytics = async ({ query = {}, env = process.env } = {}) => {
   const token = env.CONTENTFUL_MANAGEMENT_TOKEN;
   const spaceId = env.CONTENTFUL_SPACE_ID;
@@ -800,6 +1028,7 @@ export const loadContentfulAnalytics = async ({ query = {}, env = process.env } 
     previousPublishedEntries30d,
     totalAssets,
     scheduledMetrics,
+    releases,
     contentTypeDistribution,
     resolvedTaxonomyDistribution,
     tagDistribution,
@@ -866,6 +1095,12 @@ export const loadContentfulAnalytics = async ({ query = {}, env = process.env } 
       windowStart: now,
       windowEnd: scheduleWindowEnd,
     }).catch(() => ({ total: 0, nextWindow: 0 })),
+    fetchContentfulReleases({
+      token,
+      spaceId,
+      environmentId,
+      now,
+    }).catch(() => []),
     fetchContentTypeDistribution({ token, spaceId, environmentId, topContentTypes }).catch((error) => {
       contentTypeDistributionError =
         error instanceof Error ? error.message : "Unknown content type distribution error";
@@ -927,6 +1162,7 @@ export const loadContentfulAnalytics = async ({ query = {}, env = process.env } 
     assetTypeDistributionStatus: assetTypeDistributionError ? "unavailable" : "ok",
     assetTypeDistributionError,
     assetTypeDistribution,
+    releases,
     taxonomyDistributionMeta: {
       selectionSource,
       detectedSchemes,

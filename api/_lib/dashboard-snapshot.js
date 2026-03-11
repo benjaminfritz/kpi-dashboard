@@ -3,6 +3,33 @@ const isString = (value) => typeof value === 'string';
 const isNumber = (value) => typeof value === 'number' && Number.isFinite(value);
 const isArray = (value) => Array.isArray(value);
 
+const demoContentfulReleases = [
+  {
+    id: 'release-spring-launch',
+    name: 'Spring Launch',
+    version: 'v2.4.0',
+    releaseDate: '2026-03-18T09:00:00.000Z',
+    status: 'planned',
+    summary: '3 items in release',
+  },
+  {
+    id: 'release-self-service',
+    name: 'Self-Service Improvements',
+    version: 'v2.3.2',
+    releaseDate: '2026-03-10T13:30:00.000Z',
+    status: 'inProgress',
+    summary: '2 items in release',
+  },
+  {
+    id: 'release-winter-wrap',
+    name: 'Winter Wrap-Up',
+    version: 'v2.3.0',
+    releaseDate: '2026-02-27T08:00:00.000Z',
+    status: 'released',
+    summary: '4 items in release',
+  },
+];
+
 const isFigmaData = (value) => {
   if (value === null) return true;
   if (!isObject(value)) return false;
@@ -35,6 +62,7 @@ const isContentfulData = (value) => {
     isNumber(value.scheduledEntriesNext30Days) &&
     isNumber(value.publishedEntries30d) &&
     isNumber(value.publishedEntries30dDelta) &&
+    (value.releases === undefined || isArray(value.releases)) &&
     isArray(value.contentTypeDistribution) &&
     (value.taxonomyDistribution === undefined || isArray(value.taxonomyDistribution)) &&
     (value.tagDistribution === undefined || isArray(value.tagDistribution)) &&
@@ -97,6 +125,9 @@ export const toDashboardDataFromSnapshot = (snapshot) => {
       assetTypeDistributionStatus: contentful.assetTypeDistributionStatus ?? 'ok',
       assetTypeDistributionError: contentful.assetTypeDistributionError ?? null,
       taxonomyDistributionScheme: contentful.taxonomyDistributionScheme ?? null,
+      releases: Array.isArray(contentful.releases)
+        ? contentful.releases
+        : demoContentfulReleases,
       taxonomyDistribution: Array.isArray(contentful.taxonomyDistribution)
         ? contentful.taxonomyDistribution.filter((item) => item?.conceptId !== 'uncategorized')
         : [],

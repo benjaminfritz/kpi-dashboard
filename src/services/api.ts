@@ -10,6 +10,33 @@ import {
   TimeSpan,
 } from '../types';
 
+const demoContentfulReleases = [
+  {
+    id: 'release-spring-launch',
+    name: 'Spring Launch',
+    version: 'v2.4.0',
+    releaseDate: '2026-03-18T09:00:00.000Z',
+    status: 'planned' as const,
+    summary: '3 items in release',
+  },
+  {
+    id: 'release-self-service',
+    name: 'Self-Service Improvements',
+    version: 'v2.3.2',
+    releaseDate: '2026-03-10T13:30:00.000Z',
+    status: 'inProgress' as const,
+    summary: '2 items in release',
+  },
+  {
+    id: 'release-winter-wrap',
+    name: 'Winter Wrap-Up',
+    version: 'v2.3.0',
+    releaseDate: '2026-02-27T08:00:00.000Z',
+    status: 'released' as const,
+    summary: '4 items in release',
+  },
+];
+
 const fallbackDashboardData: Omit<DashboardData, 'lastUpdated' | 'figma'> = {
   contentful: {
     totalEntries: 1250,
@@ -31,6 +58,7 @@ const fallbackDashboardData: Omit<DashboardData, 'lastUpdated' | 'figma'> = {
     assetTypeDistributionStatus: 'ok',
     assetTypeDistributionError: null,
     taxonomyDistributionScheme: 'deConsumer',
+    releases: demoContentfulReleases,
     contentTypeDistribution: [
       { contentType: "LandingPage", entries: 310 },
       { contentType: "Article", entries: 442 },
@@ -142,6 +170,7 @@ const isLiveContentfulPayload = (payload: unknown): payload is ContentfulData =>
     typeof candidate.scheduledEntriesNext30Days === 'number' &&
     typeof candidate.publishedEntries30d === 'number' &&
     typeof candidate.publishedEntries30dDelta === 'number' &&
+    (candidate.releases === undefined || Array.isArray(candidate.releases)) &&
     Array.isArray(candidate.contentTypeDistribution) &&
     (candidate.taxonomyDistribution === undefined || Array.isArray(candidate.taxonomyDistribution)) &&
     (candidate.tagDistribution === undefined || Array.isArray(candidate.tagDistribution)) &&
@@ -158,6 +187,9 @@ const normalizeContentfulData = (contentful: ContentfulData): ContentfulData => 
   assetTypeDistributionStatus: contentful.assetTypeDistributionStatus ?? 'ok',
   assetTypeDistributionError: contentful.assetTypeDistributionError ?? null,
   taxonomyDistributionScheme: contentful.taxonomyDistributionScheme ?? null,
+  releases: Array.isArray(contentful.releases)
+    ? contentful.releases
+    : demoContentfulReleases,
   taxonomyDistribution: Array.isArray(contentful.taxonomyDistribution)
     ? contentful.taxonomyDistribution.filter((item) => item?.conceptId !== 'uncategorized')
     : [],

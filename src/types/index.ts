@@ -38,6 +38,15 @@ export interface FigmaConfigStatus {
   checkedAt?: string;
 }
 
+export interface ContentfulRelease {
+  id: string;
+  name: string;
+  version: string;
+  releaseDate: string;
+  status: 'planned' | 'inProgress' | 'released';
+  summary?: string | null;
+}
+
 export interface ContentfulData {
   totalEntries: number;
   publishedEntries: number;
@@ -58,6 +67,7 @@ export interface ContentfulData {
   assetTypeDistributionStatus?: 'ok' | 'unavailable';
   assetTypeDistributionError?: string | null;
   taxonomyDistributionScheme?: string | null;
+  releases?: ContentfulRelease[];
   contentTypeDistribution: {
     contentType: string;
     entries: number;

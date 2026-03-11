@@ -23,6 +23,32 @@ const fallbackDashboardData = {
     assetTypeDistributionStatus: 'ok',
     assetTypeDistributionError: null,
     taxonomyDistributionScheme: 'deConsumer',
+    releases: [
+      {
+        id: 'release-spring-launch',
+        name: 'Spring Launch',
+        version: 'v2.4.0',
+        releaseDate: '2026-03-18T09:00:00.000Z',
+        status: 'planned',
+        summary: '3 items in release',
+      },
+      {
+        id: 'release-self-service',
+        name: 'Self-Service Improvements',
+        version: 'v2.3.2',
+        releaseDate: '2026-03-10T13:30:00.000Z',
+        status: 'inProgress',
+        summary: '2 items in release',
+      },
+      {
+        id: 'release-winter-wrap',
+        name: 'Winter Wrap-Up',
+        version: 'v2.3.0',
+        releaseDate: '2026-02-27T08:00:00.000Z',
+        status: 'released',
+        summary: '4 items in release',
+      },
+    ],
     contentTypeDistribution: [
       { contentType: 'LandingPage', entries: 310 },
       { contentType: 'Article', entries: 442 },
