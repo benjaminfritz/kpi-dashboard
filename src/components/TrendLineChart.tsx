@@ -236,20 +236,15 @@ export const TrendLineChart: React.FC<TrendLineChartProps> = ({
 
   const buildPath = (values: Array<number | null>): string => {
     let path = '';
-    let hasActiveSegment = false;
 
     values.forEach((value, index) => {
-      if (value === null) {
-        hasActiveSegment = false;
-        return;
-      }
+      if (value === null) return;
 
       const x = xForIndex(index).toFixed(2);
       const y = yForValue(value).toFixed(2);
 
-      if (!hasActiveSegment) {
+      if (!path) {
         path += `M ${x} ${y}`;
-        hasActiveSegment = true;
         return;
       }
 
